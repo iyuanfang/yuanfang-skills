@@ -13,11 +13,11 @@
   --font-body:  "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
 
   /* Size */
-  --title-size-v: 140px;
-  --title-size-s: 110px;
-  --title-size-w: 86px;
-  --title-size-c: 66px;
-  --content-size: 38px;
+  --title-size-v: 110px;
+  --title-size-s: 88px;
+  --title-size-w: 80px;
+  --title-size-c: 56px;
+  --content-size: 32px;
 
   /* Decor */
   --decor-tl: none;

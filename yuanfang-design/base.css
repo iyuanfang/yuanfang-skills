@@ -72,11 +72,11 @@
   font-family: var(--font-title);
   font-weight: 900;
   font-size: var(--title-size-v);
-  line-height: 1.0;
+  line-height: 1.05;
   letter-spacing: -0.03em;
   color: var(--text);
   margin-bottom: var(--space-3);
-  max-width: 70%;
+  max-width: 100%;
   word-break: break-word;
 }
 
@@ -207,39 +207,86 @@
   opacity: 0.7;
 }
 
-/* === Responsive: 5 aspect ratios + 1 tall portrait === */
+/* === Responsive: 6 aspect ratios === */
 
 /* 1:1 square (≤ 5/4) */
 @media (max-aspect-ratio: 5/4) {
-  .cover { align-items: center; text-align: center; padding: var(--space-3); padding-right: var(--cover-pad-right, var(--space-3)); }
-  .cover__title { font-size: var(--title-size-s); max-width: 80%; }
+  .cover {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    padding: var(--space-3);
+    padding-right: var(--cover-pad-right, var(--space-3));
+  }
+  .cover__title { font-size: var(--title-size-s); max-width: 95%; margin-bottom: var(--space-2); }
+  .cover__content { text-align: center; max-width: 90%; margin-bottom: var(--space-2); }
   .cover__points { justify-content: center; }
 }
 
-/* 16:9 wide (≥ 5/4 and < 7/3) */
-@media (min-aspect-ratio: 5/4) and (max-aspect-ratio: 7/3) {
-  .cover { flex-direction: row; padding: var(--space-4) calc(var(--space-4) * 1.5); gap: var(--space-4); }
-  .cover__title { font-size: var(--title-size-w); max-width: 55%; }
-  .cover__content { max-width: 50%; }
-  .cover__points { flex-direction: column; max-width: 35%; }
+/* 16:9 wide (5/4 ≤ ar ≤ 16/9) — Bilibili cover, vertical stack, large title fills height */
+@media (min-aspect-ratio: 5/4) and (max-aspect-ratio: 16/9) {
+  .cover {
+    align-items: flex-start;
+    justify-content: center;
+    padding: calc(var(--space-4) * 1.5) calc(var(--space-4) * 2);
+    padding-right: var(--cover-pad-right, calc(var(--space-4) * 2));
+  }
+  .cover__title { font-size: calc(var(--title-size-w) * 1.6); max-width: 100%; margin-bottom: var(--space-3); }
+  .cover__content { max-width: 75%; margin-bottom: var(--space-3); }
+  .cover__points { flex-direction: row; flex-wrap: wrap; max-width: 100%; gap: var(--space-2); }
 }
 
-/* very wide (≥ 7/3) — editorial horizontal */
-@media (min-aspect-ratio: 7/3) {
-  .cover { align-items: center; text-align: center; padding: var(--space-3) calc(var(--space-4) * 2); }
-  .cover__title { font-size: var(--title-size-c); max-width: 90%; }
-  .cover__points { justify-content: center; }
-  .cover__content { max-width: 70%; }
+/* 1.9:1 OG (> 16/9 and < 7/3) — Twitter/Weibo/OG */
+@media (min-aspect-ratio: 16/9) and (max-aspect-ratio: 7/3) {
+  .cover {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    padding: var(--space-3) calc(var(--space-4) * 1.5);
+    padding-right: var(--cover-pad-right, calc(var(--space-4) * 1.5));
+  }
+  .cover__title { font-size: var(--title-size-c); max-width: 95%; margin-bottom: var(--space-2); }
+  .cover__content { text-align: center; max-width: 80%; margin-bottom: var(--space-2); }
+  .cover__points { flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 100%; gap: var(--space-2); }
+  .cover__points li { font-size: calc(var(--content-size) - 14px); }
 }
 
-/* 2.35:1 cover (specific — hides points) */
+/* 2.35:1 cover (specific 47/20) — WeChat head image */
 @media (aspect-ratio: 47/20) {
-  .cover__title { font-size: var(--title-size-c); }
+  .cover {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    padding: var(--space-2) calc(var(--space-4) * 1.5);
+    padding-right: var(--cover-pad-right, calc(var(--space-4) * 1.5));
+  }
+  .cover__title { font-size: var(--title-size-c); max-width: 95%; margin-bottom: var(--space-1); }
+  .cover__content { text-align: center; font-size: calc(var(--content-size) * 0.75); max-width: 90%; margin-bottom: 0; }
   .cover__points { display: none; }
 }
 
-/* 9:16 tall portrait */
+/* very wide (≥ 7/3) — editorial single line */
+@media (min-aspect-ratio: 7/3) {
+  .cover {
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+    padding: var(--space-2) calc(var(--space-4) * 2);
+    padding-right: var(--cover-pad-right, calc(var(--space-4) * 2));
+  }
+  .cover__title { font-size: var(--title-size-c); max-width: 95%; margin-bottom: var(--space-1); }
+  .cover__content { text-align: center; max-width: 80%; margin-bottom: 0; font-size: calc(var(--content-size) * 0.85); }
+  .cover__points { display: none; }
+}
+
+/* 9:16 tall portrait (≤ 9/16) */
 @media (max-aspect-ratio: 9/16) {
-  .cover { padding: calc(var(--space-4) * 2) var(--space-4); padding-right: var(--cover-pad-right, calc(var(--space-4) * 2)); }
-  .cover__title { font-size: var(--title-size-v); max-width: 80%; }
+  .cover {
+    align-items: flex-start;
+    justify-content: center;
+    padding: calc(var(--space-4) * 1.5) var(--space-4);
+    padding-right: var(--cover-pad-right, calc(var(--space-4) * 1.5));
+  }
+  .cover__title { font-size: calc(var(--title-size-v) * 0.85); max-width: 100%; margin-bottom: var(--space-3); }
+  .cover__content { max-width: 90%; margin-bottom: var(--space-3); }
 }
