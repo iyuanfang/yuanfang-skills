@@ -8,8 +8,41 @@ description: |
 
 # yuanfang-html-image — HTML方案社交媒体配图生成
 
-> 本技能是 **yuanfang-design** 系统的一部分。所有输出继承 `brand-spec.md` 的色板/字体/间距规范。
-> 首次使用前，请先通过 `extract-brand.js` 提取目标品牌资产（见 `../SKILL.md` Step 1）。
+## 依赖
+
+本 skill 依赖同仓库 `yuanfang-design/` 共享设计库：
+- `../yuanfang-design/base.css` — token CSS 变量
+- `../yuanfang-design/themes/*.css` — 12 个主题
+- `../yuanfang-design/layout-types/cover.html` — 布局块
+
+如需独立部署，需复制整个 `yuanfang-skills/` 仓库。
+
+## 新版 CLI
+
+```bash
+# 推荐用法
+node scripts/render.js --theme minimal-white --layout cover --platforms all
+
+# 自动选主题（基于内容关键词）
+node scripts/render.js --auto-theme --title "AI 数据报告" --platforms xiaohongshu-v
+
+# 列出可用主题
+node scripts/render.js --list-themes
+
+# 列出可用布局
+node scripts/render.js --list-layouts
+
+# 输出 HTML 不截图（调试）
+node scripts/render.js --preview --theme dark-gold --platforms wechat-cover
+```
+
+## 旧版 CLI 兼容
+
+`--template 1` 自动映射到 `--theme minimal-white --layout cover`。旧用法继续工作。
+
+---
+
+[原 SKILL.md 内容继续...]
 
 ## 核心理念
 
