@@ -1,0 +1,15 @@
+{
+  "name": "yuanfang-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design + content skills for AI agents (yuanfang-design, yuanfang-html-image)",
+  "scripts": {
+    "test": "node --test 'yuanfang-design/tests/*.test.js' 'yuanfang-html-image/tests/*.test.js'",
+    "render": "node yuanfang-html-image/scripts/render.js",
+    "showcase": "node yuanfang-design/showcase/generate.js"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "license": "MIT"
+}
