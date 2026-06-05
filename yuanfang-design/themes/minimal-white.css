@@ -1,0 +1,34 @@
+/* themes/minimal-white.css — extracted from yuanfang-html-image/templates/01-minimalist/ */
+
+[data-theme="minimal-white"] {
+  /* Color */
+  --bg: #FFFFFF;
+  --text: #0F172A;
+  --accent: #4F46E5;
+  --secondary: #64748B;
+  --bg-alt: #F8FAFC;
+
+  /* Type */
+  --font-title: "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+  --font-body:  "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+
+  /* Size */
+  --title-size-v: 140px;
+  --title-size-s: 110px;
+  --title-size-w: 86px;
+  --title-size-c: 66px;
+  --content-size: 38px;
+
+  /* Decor */
+  --decor-tl: none;
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  /* Feature flags */
+  --accent-line: 1;       /* 4px top accent line */
+  --accent-block: 1;      /* right accent block */
+  --terminal-bar: 0;
+  --grid-bg: 0;
+  --seal: "";
+}
