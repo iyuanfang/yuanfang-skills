@@ -1,0 +1,29 @@
+/* themes/bold-poster.css — extracted from 06-bold-poster */
+
+[data-theme="bold-poster"] {
+  --bg: #000000;
+  --text: #FFFFFF;
+  --accent: #FF3355;
+  --secondary: rgba(255,255,255,0.5);
+  --bg-alt: #1A1A1A;
+
+  --font-title: "Inter", "Helvetica Neue", "PingFang SC", sans-serif;
+  --font-body: "Inter", "PingFang SC", sans-serif;
+
+  --title-size-v: 160px;
+  --title-size-s: 120px;
+  --title-size-w: 96px;
+  --title-size-c: 72px;
+  --content-size: 40px;
+
+  --decor-tl: linear-gradient(135deg, var(--accent) 0%, transparent 50%);
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  --accent-line: none;
+  --accent-block: none;
+  --terminal-bar: none;
+  --grid-bg: none;
+  --seal: "";
+}

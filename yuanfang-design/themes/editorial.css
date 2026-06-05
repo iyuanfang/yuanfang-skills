@@ -1,0 +1,29 @@
+/* themes/editorial.css — extracted from 03-editorial */
+
+[data-theme="editorial"] {
+  --bg: #F5F0EB;
+  --text: #0F172A;
+  --accent: #C0392B;
+  --secondary: #64748B;
+  --bg-alt: #FFFFFF;
+
+  --font-title: "Source Serif 4", "Source Serif Pro", "PingFang SC", Georgia, serif;
+  --font-body: "Inter", "PingFang SC", sans-serif;
+
+  --title-size-v: 130px;
+  --title-size-s: 100px;
+  --title-size-w: 82px;
+  --title-size-c: 64px;
+  --content-size: 36px;
+
+  --decor-tl: none;
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  --accent-line: block;
+  --accent-block: none;
+  --terminal-bar: none;
+  --grid-bg: none;
+  --seal: "";
+}

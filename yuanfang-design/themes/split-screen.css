@@ -1,0 +1,31 @@
+/* themes/split-screen.css — extracted from 10-split-screen */
+
+[data-theme="split-screen"] {
+  --bg: #FFFFFF;
+  --text: #0F172A;
+  --accent: #4F46E5;
+  --secondary: #94A3B8;
+  --bg-alt: #EEF2FF;
+
+  --font-title: "Inter", "PingFang SC", sans-serif;
+  --font-body: "Inter", "PingFang SC", sans-serif;
+
+  --title-size-v: 80px;
+  --title-size-s: 68px;
+  --title-size-w: 56px;
+  --title-size-c: 46px;
+  --content-size: 24px;
+
+  --decor-tl: none;
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  --accent-line: none;
+  --accent-block: block;
+  --terminal-bar: none;
+  --grid-bg: none;
+  --seal: "";
+
+  --cover-pad-right: calc(50% + var(--space-4));
+}

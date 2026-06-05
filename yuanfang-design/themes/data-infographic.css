@@ -1,0 +1,29 @@
+/* themes/data-infographic.css — extracted from 07-data-infographic */
+
+[data-theme="data-infographic"] {
+  --bg: #F8FAFC;
+  --text: #0F172A;
+  --accent: #10B981;
+  --secondary: #64748B;
+  --bg-alt: #FFFFFF;
+
+  --font-title: "Outfit", "Inter", "PingFang SC", sans-serif;
+  --font-body: "Inter", "PingFang SC", sans-serif;
+
+  --title-size-v: 110px;
+  --title-size-s: 88px;
+  --title-size-w: 70px;
+  --title-size-c: 56px;
+  --content-size: 34px;
+
+  --decor-tl: none;
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  --accent-line: block;
+  --accent-block: none;
+  --terminal-bar: none;
+  --grid-bg: block;
+  --seal: "";
+}
