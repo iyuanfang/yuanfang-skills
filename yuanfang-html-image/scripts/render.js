@@ -63,13 +63,18 @@ function loadBaseCSS() {
   return fs.readFileSync(BASE_CSS_PATH, 'utf-8');
 }
 
+function extractThemeDefault(themeCSS, varName) {
+  const m = themeCSS.match(new RegExp(`--${varName}:\\s*"?([^";]+)"?`));
+  return m ? m[1].trim() : '';
+}
+
 function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080 }) {
   const tokens = {
     '{{TITLE}}':       content.title || '',
     '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),
     '{{SOURCE}}':      content.source || '',
     '{{BRAND}}':       content.brand || '',
-    '{{SEAL}}':        content.seal || '',
+    '{{SEAL}}':        content.seal || extractThemeDefault(themeCSS, 'seal'),
     '{{BADGE}}':       content.badge || '',
     '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${p}</li>`).join(''),
     '{{THEME}}':       themeName,
