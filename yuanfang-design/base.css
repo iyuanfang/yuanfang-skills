@@ -1,0 +1,243 @@
+/* yuanfang-design/base.css
+ * Token defaults for all themes. Themes override these via [data-theme="..."] selectors.
+ * No literal colors, sizes, or decorations allowed in the .cover rules below.
+ */
+
+:root {
+  /* === Color (60-30-10) === */
+  --bg: #FFFFFF;          /* 60% background */
+  --text: #0F172A;        /* main text */
+  --accent: #4F46E5;      /* 10% emphasis */
+  --secondary: #64748B;   /* 30% secondary */
+  --bg-alt: #F8FAFC;      /* card / alt background */
+
+  /* === Type === */
+  --font-title: "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+  --font-body:  "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+
+  /* === Size (per aspect ratio) === */
+  --title-size-v: 130px;  /* 3:4 portrait + 9:16 tall */
+  --title-size-s: 96px;   /* 1:1 square */
+  --title-size-w: 88px;   /* 16:9 wide */
+  --title-size-c: 64px;   /* 2.35:1 cover + 1.9:1 OG */
+  --content-size: 38px;
+  --badge-size: 18px;
+  --source-size: 14px;
+
+  /* === Space (4-step rhythm) === */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 48px;
+
+  /* === Radius / shadow === */
+  --radius: 12px;
+  --shadow: 0 8px 32px rgba(0,0,0,.08);
+
+  /* === Decor (4 corners) === */
+  --decor-tl: none;
+  --decor-tr: none;
+  --decor-bl: none;
+  --decor-br: none;
+
+  /* === Feature flags (0/1) === */
+  --accent-line: 0;       /* top 4px accent bar */
+  --accent-block: 0;      /* right side accent block */
+  --terminal-bar: 0;      /* terminal-style traffic light dots */
+  --grid-bg: 0;           /* grid background */
+  --seal: "";             /* seal text */
+}
+
+/* === Base body reset === */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* === Cover layout — uses tokens only, zero literals === */
+.cover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--space-4);
+  overflow: hidden;
+}
+
+.cover__title {
+  font-family: var(--font-title);
+  font-weight: 900;
+  font-size: var(--title-size-v);
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: var(--space-3);
+  max-width: 90%;
+}
+
+.cover__content {
+  font-size: var(--content-size);
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--secondary);
+  max-width: 88%;
+  margin-bottom: var(--space-3);
+}
+
+.cover__badge {
+  font-size: var(--badge-size);
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--space-3);
+  opacity: 0.85;
+}
+
+.cover__points {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.cover__points li {
+  font-size: calc(var(--content-size) - 8px);
+  color: var(--accent);
+  padding: var(--space-1) var(--space-2);
+  border-top: 1px solid var(--accent);
+  opacity: 0.85;
+}
+.cover__points:empty { display: none; }
+
+.cover__source {
+  position: absolute;
+  bottom: var(--space-3);
+  left: var(--space-4);
+  font-size: var(--source-size);
+  color: var(--secondary);
+  opacity: 0.5;
+  letter-spacing: 0.15em;
+}
+
+.cover__brand {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-4);
+  font-family: var(--font-title);
+  font-size: calc(var(--content-size) - 10px);
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.6;
+}
+
+.cover__decor {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+.cover__decor--tl { top: 0; left: 0; width: 40%; height: 40%; background: var(--decor-tl); }
+.cover__decor--tr { top: 0; right: 0; width: 40%; height: 40%; background: var(--decor-tr); }
+.cover__decor--bl { bottom: 0; left: 0; width: 40%; height: 40%; background: var(--decor-bl); }
+.cover__decor--br { bottom: 0; right: 0; width: 40%; height: 40%; background: var(--decor-br); }
+
+.cover__accent-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--accent);
+  display: block;
+}
+
+.cover__accent-block {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 24%;
+  background: var(--accent);
+  display: block;
+}
+
+.cover__terminal-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 32px;
+  background: var(--bg-alt);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  gap: 6px;
+}
+.cover__terminal-bar span {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--secondary);
+}
+
+.cover__grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(0deg, transparent 0%, var(--secondary) 1px, transparent 1px),
+    linear-gradient(90deg, transparent 0%, var(--secondary) 1px, transparent 1px);
+  background-size: 50px 50px;
+  opacity: 0.05;
+  display: block;
+}
+
+.cover__seal {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 64px; height: 64px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--badge-size);
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+/* === Responsive: 5 aspect ratios + 1 tall portrait === */
+
+/* 1:1 square (≤ 5/4) */
+@media (max-aspect-ratio: 5/4) {
+  .cover { align-items: center; text-align: center; padding: var(--space-3); }
+  .cover__title { font-size: var(--title-size-s); max-width: 95%; }
+  .cover__points { justify-content: center; }
+}
+
+/* 16:9 wide (≥ 5/4 and < 7/3) */
+@media (min-aspect-ratio: 5/4) and (max-aspect-ratio: 7/3) {
+  .cover { flex-direction: row; padding: var(--space-4) calc(var(--space-4) * 1.5); gap: var(--space-4); }
+  .cover__title { font-size: var(--title-size-w); max-width: 60%; }
+  .cover__content { max-width: 55%; }
+  .cover__points { flex-direction: column; max-width: 35%; }
+}
+
+/* very wide (≥ 7/3) — editorial horizontal */
+@media (min-aspect-ratio: 7/3) {
+  .cover { align-items: center; text-align: center; padding: var(--space-3) calc(var(--space-4) * 2); }
+  .cover__title { font-size: var(--title-size-c); max-width: 100%; }
+  .cover__points { justify-content: center; }
+  .cover__content { max-width: 70%; }
+}
+
+/* 2.35:1 cover (specific — hides points) */
+@media (aspect-ratio: 47/20) {
+  .cover__title { font-size: var(--title-size-c); }
+  .cover__points { display: none; }
+}
+
+/* 9:16 tall portrait */
+@media (max-aspect-ratio: 9/16) {
+  .cover { padding: calc(var(--space-4) * 2) var(--space-4); }
+  .cover__title { font-size: var(--title-size-v); max-width: 95%; }
+}
