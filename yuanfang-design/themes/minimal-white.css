@@ -26,9 +26,12 @@
   --decor-br: none;
 
   /* Feature flags */
-  --accent-line: 1;       /* 4px top accent line */
-  --accent-block: 1;      /* right accent block */
-  --terminal-bar: 0;
-  --grid-bg: 0;
+  --accent-line: block;       /* 4px top accent line */
+  --accent-block: block;      /* right accent block */
+  --terminal-bar: none;
+  --grid-bg: none;
   --seal: "";
+
+  /* Right padding accounts for accent block (24% width) */
+  --cover-pad-right: calc(24% + var(--space-4));
 }
