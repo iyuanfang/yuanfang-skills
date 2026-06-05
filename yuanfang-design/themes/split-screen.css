@@ -10,10 +10,10 @@
   --font-title: "Inter", "PingFang SC", sans-serif;
   --font-body: "Inter", "PingFang SC", sans-serif;
 
-  --title-size-v: 80px;
-  --title-size-s: 68px;
-  --title-size-w: 56px;
-  --title-size-c: 46px;
+  --title-size-v: 64px;
+  --title-size-s: 56px;
+  --title-size-w: 48px;
+  --title-size-c: 40px;
   --content-size: 24px;
 
   --decor-tl: none;
