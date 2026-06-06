@@ -19,34 +19,35 @@ test('parseCSSVariables extracts --name: value pairs', () => {
   assert.strictEqual(vars['color'], undefined);
 });
 
-test('mapToPptxTheme converts px to pt (1px = 0.75pt)', () => {
+test('mapToPptxTheme converts px to pt (1px = 0.75pt) using real yuanfang-design tokens', () => {
   const tokens = {
-    '--color-bg-primary': '#ffffff',
-    '--color-text-primary': '#111111',
-    '--color-accent': '#4f46e5',
-    '--font-family-base': 'system-ui',
-    '--font-family-heading': 'Georgia, serif',
-    '--font-size-base': '16px',
-    '--font-size-h1': '32px',
-    '--font-size-h2': '24px',
-    '--font-size-sm': '14px',
-    '--font-weight-bold': '700',
-    '--font-weight-normal': '400',
-    '--line-height-base': '1.5',
-    '--spacing-unit': '8px',
-    '--border-radius-base': '8px',
+    '--bg': '#ffffff',
+    '--text': '#111111',
+    '--accent': '#4f46e5',
+    '--secondary': '#64748b',
+    '--bg-alt': '#f8fafc',
+    '--font-body': 'system-ui',
+    '--font-title': 'Georgia, serif',
+    '--content-size': '38px',
+    '--title-size-w': '88px',
+    '--title-size-s': '96px',
+    '--title-size-c': '64px',
+    '--source-size': '14px',
+    '--space-2': '16px',
+    '--radius': '12px',
   };
   const theme = mapToPptxTheme(tokens);
   assert.strictEqual(theme.bg, '#ffffff');
   assert.strictEqual(theme.text, '#111111');
   assert.strictEqual(theme.accent, '#4f46e5');
+  assert.strictEqual(theme.bgAlt, '#f8fafc');
   assert.strictEqual(theme.fontBody, 'system-ui');
   assert.strictEqual(theme.fontTitle, 'Georgia, serif');
-  assert.strictEqual(theme.sizeBase, 12);
-  assert.strictEqual(theme.sizeH1, 24);
-  assert.strictEqual(theme.sizeH2, 18);
+  assert.strictEqual(theme.sizeBase, 28.5);
+  assert.strictEqual(theme.sizeH1, 66);
+  assert.strictEqual(theme.sizeH2, 72);
+  assert.strictEqual(theme.sizeH3, 48);
   assert.strictEqual(theme.sizeSm, 10.5);
-  assert.strictEqual(theme.weightBold, 700);
-  assert.strictEqual(theme.spacing, 6);
-  assert.strictEqual(theme.rectRadius, 6);
+  assert.strictEqual(theme.spacing, 12);
+  assert.strictEqual(theme.rectRadius, 9);
 });
