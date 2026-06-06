@@ -36,7 +36,7 @@ description: |
 
 ```bash
 # agent 调用 (在项目根目录)
-python3 scripts/extract-brand.py "https://example.com/article"
+node scripts/extract-brand.js "https://example.com/article"
 ```
 
 输出存到项目本地 `./.yuanfang/brand-specs/<domain>.json`:
@@ -107,7 +107,7 @@ URL: https://yuanfang.skills/article/123
 ### 来源
 
 - **URL** — 已在 Step 0 抓过页面, 复用 HTML 提取 title/body/points
-- **纯文本** — agent 调 `extract.py --text` 解析首行/段落/bullet
+- **纯文本** — agent 调 `extract.js --text` 解析首行/段落/bullet
 - **已有 content.json** — 直接用, 跳过提取
 
 ### 提取字段
@@ -123,7 +123,7 @@ URL: https://yuanfang.skills/article/123
 ```bash
 # URL 已经在 Step 0 抓过, 直接复用
 # 文本输入时:
-python3 scripts/extract.py "标题\n正文\n- 要点1\n- 要点2" > content.json
+node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.json
 ```
 
 ### 展示给用户
@@ -242,20 +242,21 @@ Step 4: 预览确认 / 迭代优化
 
 ---
 
-## 技术参考: extract.py 用法
+## 技术参考: extract.js 用法
 
-agent 调用 `extract.py` 提取内容的实际命令:
+agent 调用 `extract.js` 提取内容的实际命令:
+
+**前置**: Node.js 18+ (自带 `fetch`, 无需额外依赖).
 
 ```bash
 # URL 提取（项目根目录执行）
-source .venv/bin/activate
-python3 src/marketing/yuanfang-skills/yuanfang-html-image/scripts/extract.py "https://..." > content.json
+node scripts/extract.js "https://..." > content.json
 
 # 纯文本提取
-python3 src/marketing/yuanfang-skills/yuanfang-html-image/scripts/extract.py "标题\n正文内容\n- 要点1\n- 要点2" > content.json
+node scripts/extract.js --text "标题\n正文内容\n- 要点1\n- 要点2" > content.json
 
 # 从文件读取
-python3 src/marketing/yuanfang-skills/yuanfang-html-image/scripts/extract.py --file article.md > content.json
+node scripts/extract.js --file article.md > content.json
 ```
 
 输出格式：
@@ -269,7 +270,7 @@ python3 src/marketing/yuanfang-skills/yuanfang-html-image/scripts/extract.py --f
 }
 ```
 
-注: `source` 字段已废弃, 不再生成.
+注: `source` 字段已废弃, 不再生成. **无 Python 依赖** — 全栈 Node.js.
 
 ---
 
@@ -420,9 +421,13 @@ wait
 yuanfang-html-image/
 ├── SKILL.md
 ├── scripts/
-│   ├── render.js               # 核心渲染引擎
-│   └── extract.py              # 内容提取（URL/文本）
-└── templates/
+│   ├── render.js               # 核心渲染引擎 (Node.js)
+│   ├── extract.js              # 内容提取 (Node.js, URL/文本, 内置 fetch)
+│   └── extract-brand.js        # 品牌资产提取 (Node.js, URL → logo/colors/fonts)
+├── .yuanfang/                  # 品牌资产缓存 (项目级, 提交到 git)
+│   └── brand-specs/
+│       └── <domain>.json
+└── templates/                  # 旧版模板目录 (兼容性保留, 未来清理)
     ├── 01-minimalist/
     ├── 02-dark-gold/
     ├── 03-editorial/
