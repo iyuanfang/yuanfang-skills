@@ -97,3 +97,68 @@ test('QR: empty renders nothing', () => {
   });
   assert.ok(!result.includes('cover__qr-img'));
 });
+
+test('XSS: title is escaped', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '<h1>{{TITLE}}</h1>',
+    content: { title: '<script>alert(1)</script>' },
+  });
+  assert.ok(!result.includes('<script>alert(1)</script>'));
+  assert.ok(result.includes('&lt;script&gt;'));
+});
+
+test('XSS: body is escaped', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '<p>{{CONTENT}}</p>',
+    content: { body: '5 < 10 & "x"' },
+  });
+  assert.ok(result.includes('5 &lt; 10 &amp; &quot;x&quot;'));
+});
+
+test('XSS: points are escaped', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '<ul>{{POINTS_HTML}}</ul>',
+    content: { points: ['<b>bold</b>', 'a&b'] },
+  });
+  assert.ok(!result.includes('<b>bold</b>'));
+  assert.ok(result.includes('&lt;b&gt;bold&lt;/b&gt;'));
+  assert.ok(result.includes('a&amp;b'));
+});
+
+test('XSS: badge and seal are escaped', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '<span>{{BADGE}}</span>',
+    content: { badge: '<img onerror=alert(1)>' },
+  });
+  assert.ok(!result.includes('<img onerror=alert(1)>'));
+  assert.ok(result.includes('&lt;img'));
+});
+
+test('direction detection: Chinese defaults to LTR/zh-CN', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '{{TITLE}}', content: { title: '中文测试', body: '正文' },
+  });
+  assert.ok(result.includes('lang="zh-CN"'));
+  assert.ok(result.includes('dir="ltr"'));
+});
+
+test('direction detection: Arabic flips to RTL', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '{{TITLE}}', content: { title: 'تجربة', body: 'محتوى' },
+  });
+  assert.ok(result.includes('dir="rtl"'));
+});
+
+test('direction detection: Hebrew flips to RTL', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '',
+    layoutHTML: '{{TITLE}}', content: { title: 'שלום', body: 'בדיקה' },
+  });
+  assert.ok(result.includes('dir="rtl"'));
+});

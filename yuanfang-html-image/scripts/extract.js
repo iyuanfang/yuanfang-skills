@@ -118,11 +118,38 @@ function extractPoints(html) {
   return points;
 }
 
+function extractPointsFromBody(body) {
+  if (!body || !body.includes('、')) return { points: [], body };
+  // Match "、" separated Chinese enumeration: e.g. "知识库/发布双版本、多渠道接入、AI Agent"
+  const re = /((?:[\u4e00-\u9fff\u3040-\u309f\w\/\+\s-]+[、])+[\u4e00-\u9fff\u3040-\u309f\w\/\+\s-]+)/;
+  const m = body.match(re);
+  if (m) {
+    const items = m[1].split('、').map(s => s.trim()).filter(Boolean);
+    if (items.length >= 2 && items.every(i => i.length >= 2 && i.length <= 40)) {
+      let newBody = body.replace(m[1], '').replace(/[，,]\s*(?=[。！？])/g, '').replace(/[，,]\s*$/, '').replace(/\s{2,}/g, ' ').trim();
+      if (!newBody) newBody = body;
+      return { points: items.slice(0, 4), body: newBody };
+    }
+  }
+  return { points: [], body };
+}
+
 function extractFromHtml(html, url) {
+  let body = extractBody(html) || '';
+  let points = extractPoints(html);
+
+  if (points.length === 0) {
+    const fallback = extractPointsFromBody(body);
+    if (fallback.points.length > 0) {
+      points = fallback.points;
+      body = fallback.body;
+    }
+  }
+
   return {
     title: stripTags(extractTitle(html) || ''),
-    body: extractBody(html) || '',
-    points: extractPoints(html),
+    body: body,
+    points: points,
     brand: extractBrand(html, url),
     brandImage: extractBrandImage(html) || undefined,
   };
@@ -194,6 +221,7 @@ module.exports = {
   extractBrand,
   extractBrandImage,
   extractPoints,
+  extractPointsFromBody,
   extractFromHtml,
   extractFromText,
   extractFromUrl,

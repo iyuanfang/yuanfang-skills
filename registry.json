@@ -1,0 +1,9 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "yuanfang",
+  "homepage": "https://github.com/<org>/yuanfang-skills",
+  "include": [
+    "yuanfang-design/themes/registry.json",
+    "yuanfang-design/layout-types/registry.json"
+  ]
+}

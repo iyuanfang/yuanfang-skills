@@ -74,26 +74,27 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
     : '';
   const qrHtml = resolveQrHtml(content.qr);
   const tokens = {
-    '{{TITLE}}':       content.title || '',
-    '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),
-    '{{SOURCE}}':      content.source || '',
+    '{{TITLE}}':       escapeHtml(String(content.title || '')),
+    '{{CONTENT}}':     escapeHtml(String(content.body || content.content || '')).replace(/\n/g, '<br>'),
+    '{{SOURCE}}':      escapeHtml(content.source || ''),
     '{{BRAND}}':       brandHtml,
     '{{QR}}':          qrHtml,
-    '{{SEAL}}':        content.seal || extractThemeDefault(themeCSS, 'seal'),
-    '{{BADGE}}':       content.badge || '',
-    '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${p}</li>`).join(''),
+    '{{SEAL}}':        escapeHtml(content.seal || extractThemeDefault(themeCSS, 'seal')),
+    '{{BADGE}}':       escapeHtml(content.badge || ''),
+    '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${escapeHtml(p)}</li>`).join(''),
     '{{THEME}}':       themeName,
   };
   let body = layoutHTML;
   for (const [k, v] of Object.entries(tokens)) {
     body = body.split(k).join(v);
   }
+  const direction = detectDirection(content.title, content.body);
   return `<!DOCTYPE html>
-<html lang="zh-CN" data-theme="${themeName}">
+<html lang="${direction.lang}" dir="${direction.dir}" data-theme="${themeName}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=${width}, height=${height}">
-<title>${content.title || ''}</title>
+<title>${escapeHtml(content.title || '')}</title>
 <style>
 ${baseCSS}
 ${themeCSS}
@@ -190,6 +191,7 @@ function resolvePlatforms(args) {
   }
   const ids = args.platforms.split(',').map(s => s.trim().toLowerCase());
   const out = [];
+  const unknown = [];
   for (const id of ids) {
     if (id === 'all') return Object.values(ALL_PLATFORMS);
     if (GROUPS[id]) {
@@ -198,7 +200,16 @@ function resolvePlatforms(args) {
       }
     } else if (ALL_PLATFORMS[id]) {
       if (!out.includes(id)) out.push(id);
+    } else {
+      unknown.push(id);
     }
+  }
+  if (unknown.length > 0) {
+    process.stderr.write(`warning: unknown platform(s) ignored: ${unknown.join(', ')}\n`);
+    process.stderr.write(`available: ${Object.keys(ALL_PLATFORMS).join(', ')}\n`);
+  }
+  if (out.length === 0 && ids.length > 0) {
+    throw new Error(`no valid platforms. Unknown: ${unknown.join(', ')}. Available: ${Object.keys(ALL_PLATFORMS).join(', ')}`);
   }
   return out.map(id => ALL_PLATFORMS[id]).filter(Boolean);
 }
@@ -215,6 +226,20 @@ function takeScreenshot(html, outputPath, platform) {
     console.error(`  [FAIL] ${platform.label}: ${e.message}`);
   }
   if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+}
+
+function detectDirection(title, body) {
+  // Returns {lang, dir} for the <html> element. Detects RTL scripts (Arabic,
+  // Hebrew, Persian, Urdu) and sets dir="rtl" so logical CSS properties
+  // (padding-inline-end, margin-inline-start) flip correctly. Default is
+  // Chinese LTR since that's yuanfang's primary use case.
+  const text = `${title || ''} ${body || ''}`;
+  // U+0600-U+06FF Arabic, U+0590-U+05FF Hebrew, U+FB50-U+FDFF Arabic Presentation Forms
+  const rtlRegex = /[\u0600-\u06FF\u0590-\u05FF\uFB50-\uFDFF]/;
+  if (rtlRegex.test(text)) {
+    return { lang: 'ar', dir: 'rtl' };
+  }
+  return { lang: 'zh-CN', dir: 'ltr' };
 }
 
 function escapeHtml(s) {
@@ -268,7 +293,10 @@ function dateStamp() {
   const d = new Date();
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
 }
-function safeDirName(t) { return (t || 'untitled').replace(/[\\/:*?"<>|]/g, '_').trim(); }
+function safeDirName(t) {
+  const cleaned = (t || '').replace(/[\/\\:*?"<>|\n\r\t&']/g, '_').trim();
+  return cleaned || 'untitled';
+}
 function resolveOutputDir(content, args) {
   if (args.output) return path.resolve(args.output);
   const today = dateStamp();
@@ -370,6 +398,23 @@ function main() {
   const spec = findBrandSpec(content, args);
   const merged = mergeBrandSpec(content, spec);
 
+  // ── Hard gate: detect skipped Step 2 user confirmations ──
+  // If the user didn't make brand decisions and theme is default, the agent
+  // likely skipped Step 2's three rounds. Refuse to render and tell it why.
+  const themeIsDefault = !args.theme;
+  const noBrandDecision = !merged.brand && !merged.brandImage && !content.brandImage;
+  if (themeIsDefault && noBrandDecision) {
+    throw new Error(
+      'render.js: 检测到 Step 2 用户确认未完成。\n' +
+      '你必须先让用户确认以下决策才能渲染：\n' +
+      '  - logo:  用抓到的 / 换 URL / 不要（→ content.brandImage）\n' +
+      '  - 品牌名: 用抓到的 / 换名（→ content.brand）\n' +
+      '  - 主题:  12 个主题里选一个（→ --theme）\n' +
+      '  - 平台:  12 个平台里选 1-N 个（→ --platforms）\n' +
+      '参考 SKILL.md Step 2 三轮询问。'
+    );
+  }
+
   const { theme, layout } = resolveTemplate(args);
   const themeCSS = loadTheme(theme);
   const baseCSS = loadBaseCSS();
@@ -403,7 +448,13 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  try {
+    main();
+  } catch (err) {
+    console.error(`Error: ${err.message}`);
+    if (process.env.DEBUG) console.error(err.stack);
+    process.exit(1);
+  }
 }
 
 module.exports = {

@@ -5,6 +5,11 @@
 /tmp/
 /yuanfang-html-image/output/
 /yuanfang-design/showcase/output/
+/yuanfang-html-image/tests/.visual-tmp/
+/yuanfang-html-image/tests/.animation-out/
+
+# Stray shell-expansion artifacts (e.g. accidental `~/` dirs)
+/~/
 
 # Node
 node_modules/

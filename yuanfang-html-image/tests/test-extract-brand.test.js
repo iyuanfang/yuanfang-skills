@@ -10,6 +10,7 @@ const {
   dataUrlToBuffer,
   rgbToHex,
   extractDominantColor,
+  extractBrandPalette,
   readCache,
   writeCache,
   isExpired,
@@ -153,14 +154,40 @@ test('extractDominantColor: red PNG returns reddish hex', async () => {
   const dataUrl = `data:image/png;base64,${buf.toString('base64')}`;
   const hex = await extractDominantColor(dataUrl);
   assert.ok(hex);
-  assert.match(hex, /^#[0-9A-F]{6}$/);
-  assert.strictEqual(hex, '#DC2626');
+  assert.match(hex, /^#[0-9a-fA-F]{6}$/);
+  // node-vibrant quantizes; accept red channel within ±10
+  const r = parseInt(hex.slice(1, 3), 16);
+  assert.ok(Math.abs(r - 0xdc) <= 10, `red channel ${r.toString(16)} not near dc`);
 });
 
 test('extractDominantColor: null for empty input', async () => {
   assert.strictEqual(await extractDominantColor(null), null);
   assert.strictEqual(await extractDominantColor(''), null);
   assert.strictEqual(await extractDominantColor('invalid'), null);
+});
+
+test('extractBrandPalette: returns 6-swatch palette for non-trivial image', async () => {
+  const sharp = require('sharp');
+  const blue = await sharp({ create: { width: 50, height: 100, channels: 3, background: { r: 30, g: 80, b: 200 } } }).png().toBuffer();
+  const yellow = await sharp({ create: { width: 50, height: 100, channels: 3, background: { r: 255, g: 200, b: 0 } } }).png().toBuffer();
+  const mixed = await sharp({ create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } } })
+    .composite([{ input: blue, top: 0, left: 0 }, { input: yellow, top: 0, left: 50 }])
+    .png().toBuffer();
+  const dataUrl = `data:image/png;base64,${mixed.toString('base64')}`;
+  const palette = await extractBrandPalette(dataUrl);
+  assert.ok(palette, 'palette should not be null');
+  assert.ok(palette.Vibrant, 'should have Vibrant swatch');
+  assert.match(palette.Vibrant.hex, /^#[0-9a-fA-F]{6}$/);
+  // Vibrant should be the yellow stripe (more saturated than blue+white avg)
+  assert.ok(
+    palette.Vibrant.hex === '#fccc04' || palette.Vibrant.hex.toLowerCase() === '#fccc04',
+    `expected yellow Vibrant, got ${palette.Vibrant.hex}`
+  );
+});
+
+test('extractBrandPalette: null for empty input', async () => {
+  assert.strictEqual(await extractBrandPalette(null), null);
+  assert.strictEqual(await extractBrandPalette(''), null);
 });
 
 test('extractBrandFromHtml: dark mode theme-color captured', () => {

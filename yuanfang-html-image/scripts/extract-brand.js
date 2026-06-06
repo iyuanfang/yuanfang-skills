@@ -50,9 +50,56 @@ function rgbToHex(r, g, b) {
 }
 
 async function extractDominantColor(dataUrl) {
+  // Returns a single hex representing the most prominent brand color.
+  // Uses node-vibrant for perceptual color extraction (vs. sharp's 1x1 mean,
+  // which is the image-wide average, not the dominant color).
   if (!dataUrl) return null;
   const parsed = dataUrlToBuffer(dataUrl);
   if (!parsed) return null;
+  let Vibrant;
+  try {
+    Vibrant = require('node-vibrant/node').Vibrant;
+  } catch {
+    return fallbackAverageColor(parsed.buffer);
+  }
+  try {
+    const palette = await Vibrant.from(parsed.buffer).quality(10).getPalette();
+    // Prefer Vibrant → DarkVibrant → LightVibrant → Muted (in that order).
+    // The first non-null is the most "brand-like" saturated color.
+    const swatch = palette.Vibrant || palette.DarkVibrant || palette.LightVibrant || palette.Muted;
+    return swatch ? swatch.hex : null;
+  } catch {
+    return fallbackAverageColor(parsed.buffer);
+  }
+}
+
+async function extractBrandPalette(dataUrl) {
+  // Returns a 6-swatch semantic palette: vibrant / darkVibrant / lightVibrant
+  // / darkMuted / lightMuted / muted. Used by render.js to map to multiple
+  // design tokens (--accent, --secondary, etc.) for the 60-30-10 rule.
+  if (!dataUrl) return null;
+  const parsed = dataUrlToBuffer(dataUrl);
+  if (!parsed) return null;
+  let Vibrant;
+  try {
+    Vibrant = require('node-vibrant/node').Vibrant;
+  } catch {
+    return null;
+  }
+  try {
+    const palette = await Vibrant.from(parsed.buffer).quality(10).getPalette();
+    const out = {};
+    for (const [name, sw] of Object.entries(palette)) {
+      if (sw) out[name] = { hex: sw.hex, population: sw.population };
+    }
+    return Object.keys(out).length > 0 ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fallbackAverageColor(buffer) {
+  // Used only when node-vibrant is unavailable. Returns the mean RGB.
   let sharp;
   try {
     sharp = require('sharp');
@@ -60,7 +107,7 @@ async function extractDominantColor(dataUrl) {
     return null;
   }
   try {
-    const { data, info } = await sharp(parsed.buffer)
+    const { data } = await sharp(buffer)
       .resize(1, 1, { fit: 'cover' })
       .removeAlpha()
       .raw()
@@ -195,6 +242,7 @@ module.exports = {
   dataUrlToBuffer,
   rgbToHex,
   extractDominantColor,
+  extractBrandPalette,
   fetchBrand,
   readCache,
   writeCache,

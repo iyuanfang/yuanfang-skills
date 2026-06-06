@@ -9,7 +9,9 @@
     "showcase": "node yuanfang-design/showcase/generate.js"
   },
   "dependencies": {
-    "playwright": "^1.40.0"
+    "node-vibrant": "^5.0.0",
+    "playwright": "^1.40.0",
+    "sharp": "^0.34.5"
   },
   "license": "MIT",
   "devDependencies": {

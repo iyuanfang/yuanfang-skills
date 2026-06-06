@@ -11,6 +11,7 @@ const {
   extractBrand,
   extractBrandImage,
   extractPoints,
+  extractPointsFromBody,
   extractFromHtml,
   extractFromText,
   parseArgs,
@@ -235,4 +236,47 @@ test('getThemeColor: dark mode media=light returns null', () => {
 test('getThemeColor: missing returns null', () => {
   assert.strictEqual(getThemeColor('<html></html>', 'light'), null);
   assert.strictEqual(getThemeColor('<html></html>', 'dark'), null);
+});
+
+test('extractPointsFromBody: Chinese enumeration splits into points', () => {
+  const body = '支持知识库草稿/发布双版本、多渠道接入、AI Agent 技能联动、双 LLM 自动容灾。';
+  const r = extractPointsFromBody(body);
+  assert.ok(r.points.includes('多渠道接入'));
+  assert.ok(r.points.includes('AI Agent 技能联动'));
+  assert.ok(r.points.length >= 3);
+  assert.ok(!r.body.includes('多渠道接入'));
+});
+
+test('extractPointsFromBody: shortens body after extraction', () => {
+  const body = 'AICS 是一款智能客服平台，支持功能A、功能B、功能C。免费版可用。';
+  const r = extractPointsFromBody(body);
+  assert.ok(r.points.length >= 2);
+  assert.ok(!r.body.includes('功能A、功能B'));
+  assert.ok(r.body.length < body.length);
+});
+
+test('extractPointsFromBody: without dun hao returns empty', () => {
+  const body = 'Just a simple description without enumeration.';
+  assert.deepStrictEqual(extractPointsFromBody(body).points, []);
+});
+
+test('extractPointsFromBody: no dun hao returns empty', () => {
+  assert.deepStrictEqual(extractPointsFromBody('just text').points, []);
+});
+
+test('extractPointsFromBody: empty body returns empty', () => {
+  assert.deepStrictEqual(extractPointsFromBody('').points, []);
+  assert.deepStrictEqual(extractPointsFromBody(null).points, []);
+});
+
+test('extractFromHtml: body with dun hao extracts points and shortens body', () => {
+  const html = `<html><head>
+    <meta property="og:title" content="AICS">
+    <meta property="og:description" content="AICS 智能客服平台，支持知识库双版本、多渠道接入、AI 联动、双 LLM 容灾。免费 ¥0。">
+  </head></html>`;
+  const r = extractFromHtml(html, '');
+  assert.strictEqual(r.title, 'AICS');
+  assert.ok(r.points.length >= 2);
+  assert.ok(r.points.includes('多渠道接入'));
+  assert.ok(r.body.length < 60); // shortened
 });

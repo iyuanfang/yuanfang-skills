@@ -51,54 +51,17 @@ description: |
 ### 实现
 
 ```bash
-# agent 调用 (在项目根目录)
 node scripts/extract-brand.js "https://example.com/article"
+# → 写入 ./.yuanfang/brand-specs/<domain>.json
 ```
 
-输出存到项目本地 `./.yuanfang/brand-specs/<domain>.json`:
+### 缓存策略
 
-```json
-{
-  "domain": "yuanfang.skills",
-  "extractedAt": "2026-06-06T10:30:00Z",
-  "logo": "data:image/png;base64,...",
-  "name": "Yuanfang",
-  "colors": { "primary": "#5856E9", ... },
-  "fonts": { "title": "Outfit", "body": "Inter" }
-}
-```
+`./.yuanfang/brand-specs/<domain>.json` 自动缓存, TTL 7 天, `--refresh-brand` 强制刷新。**没有全局缓存** — 品牌是项目资产, 团队通过 git 共享。
 
-### 缓存策略 (项目级)
+### 文本输入 / 无输入
 
-`./.yuanfang/brand-specs/<domain>.json` 自动缓存, **项目内复用**:
-
-- 同一个项目再访问同一 domain, **直接读缓存, 不重新抓**
-- TTL 默认 7 天, 过期自动重抓
-- 强制刷新: `--refresh-brand` flag
-- **没有全局缓存** — 品牌是项目资产, 不是用户资产. 团队成员通过 git 共享 `.yuanfang/`
-
-### 缓存查找流程
-
-```
-URL: https://yuanfang.skills/article/123
-    ↓
-提取 domain: yuanfang.skills
-    ↓
-查 ./.yuanfang/brand-specs/yuanfang.skills.json ?
-    ├─ 存在且未过期 → 直接用
-    ├─ 存在但过期 → 重新抓, 覆盖
-    └─ 不存在 → 抓取, 写入
-    ↓
-返回 brand-spec
-```
-
-### 文本输入 → 跳过
-
-纯文本没有品牌信息, brand-spec 不生成. 进 Step 2 时**仍然要问 logo 和颜色**, 用户可以提供.
-
-### 用户没给 URL 也没给文本
-
-跳过 Step 0. 进 Step 2 时主动问 logo + 颜色 (跟文本输入一样的问法).
+跳过 Step 0 (没东西可抓), 进 Step 2 时**仍然要主动问 logo 和颜色**。
 
 ### Step 0 抓取后的展示 (仅供参考)
 
@@ -111,6 +74,8 @@ URL: https://yuanfang.skills/article/123
 
 (这些是建议值, 后面 Step 2 你可以改)
 ```
+
+### [等待用户确认] 展示以上结果给用户，等用户确认后才能进 Step 1
 
 用户确认 → 进 Step 1 (内容).
 
@@ -128,18 +93,17 @@ URL: https://yuanfang.skills/article/123
 
 ### 提取字段
 
-| 字段 | 来源 | 用户可改 |
-|---|---|---|
-| `title` | `<h1>` / og:title / 文本首行 | ✓ |
-| `body` | og:description / 第一段 / 文本摘要 | ✓ |
-| `points` | sub-headings / 文本 bullet / 自动归纳 | ✓ |
+| 字段 | 来源 | 用户可改 | 推荐长度 |
+|------|------|---------|---------|
+| `title` | `<h1>` / og:title / 文本首行 | ✓ | 10-20 字，不超过 30 字 |
+| `body` | og:description / 第一段 / 文本摘要 | ✓ | 30-60 字，不超过 100 字（超长会被截断） |
+| `points` | sub-headings / 文本 bullet / 自动归纳 | ✓ | 3-5 条，每条 10-20 字 |
 
 ### 实现
 
 ```bash
-# URL 已经在 Step 0 抓过, 直接复用
-# 文本输入时:
 node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.json
+# URL 已经在 Step 0 抓过, 直接复用
 ```
 
 ### 展示给用户
@@ -148,10 +112,14 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 我提取了内容:
   标题: AI 重塑内容创作
   正文: 从文案到配图, AI 正在重新定义创意的边界。
-  要点: 效率提升 10 倍 / 零门槛创作 / AI 增强而非替代
+  要点: 效率提升 10 倍 / 零门槛创作 / AI 不是替代而是增强
 
 要改吗? 没问题就继续.
 ```
+
+注意：正文过长会撑满画面导致标题不可见，建议正文不超过 100 字，标题不超过 30 字。
+
+### [等待用户确认] 展示以上内容给用户，等用户确认/修改后才能进 Step 2
 
 ---
 
@@ -159,12 +127,14 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 
 ### 第一轮 (必答)
 
-- **主题** — 从 12 个主题中选 1 个
+- **主题** — 从 12 个主题中选 1 个。向用户展示完整信息（底色、主色、视觉特征、适合场景），参考「完整主题库」表格。
   - **如果 Step 0 抓到品牌主色**, 推荐色调最接近的 2-3 个主题, 让用户挑
   - **没抓品牌色**, 默认推荐 `minimal-white` (干净白底, 通用百搭)
 - **平台** — 从 6+ 个尺寸中选 1-N 个 (允许多选)
   - 默认推荐: `xiaohongshu` 组 (覆盖小红书竖 + 方)
   - 用户说 "全平台" / "全选" → 选全部
+
+### [等待用户确认] 等用户回答第一轮后才能继续第二轮
 
 ### 第二轮 (logo + 颜色, 都要问)
 
@@ -183,6 +153,8 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
     - 不要 → `brand-spec.colors.primary = null` (主题默认)
   - **没抓到**: 问 "要替换主题色吗? 给个 hex, 或保持主题默认"
 
+### [等待用户确认] 等用户回答第二轮后才能继续第三轮
+
 ### 第三轮 (可选, 答 "不用" 跳过)
 
 - **分类标签 (badge)** — 顶部小字
@@ -197,20 +169,12 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
   - 智能检测: 以 `data:image/` 开头或 `.png/.jpg` 结尾 → 当图片用; 否则当 URL 自动生成
   - 常见场景: 公众号文章链接、视频号主页、个人收款码
 
-### 不再使用的兜底
+### 询问方式
 
-- ~~品牌名文字 fallback~~: 如果没 logo, 左下角**完全空**, 不显示 "AICS" 这类文字
-- ~~主题默认色兜底~~: 改成"显式问用户要不要换", 不要静默用主题默认
+- ✅ 有原生 UI 工具 (OpenCode `question` / Claude Code `AskUserQuestion`): 弹选项菜单
+- ⚠️ 无 UI 工具: 打印带编号的选项列表, 等用户从 stdin 输入编号
 
-### 询问方式 — 按 agent 能力自适应
-
-| Agent 能力 | 询问方式 |
-|---|---|
-| ✅ 有原生 UI 工具 (OpenCode `question` / Claude Code `AskUserQuestion`) | 弹选项菜单, 用户点击/键盘选 |
-| ⚠️ 无 UI 工具 (Codex / openclaw / 简陋 CLI agent) | 打印带编号的选项列表, 等用户从 stdin 输入编号 (1/2/3 或名称) |
-| ❓ 不确定 | 默认按有 UI 做, 失败退回打印+读 stdin |
-
-### 内容类型 → 主题推荐 (agent 备查)
+### 内容类型 → 主题推荐
 
 ```
 干货/教程 → minimal-white / data-infographic / list-ranking
@@ -222,28 +186,15 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 
 ---
 
-## 新版 CLI
+## CLI
+
+详见 [references/cli.md](references/cli.md)。核心命令：
 
 ```bash
-# 推荐用法
-node scripts/render.js --theme minimal-white --layout cover --platforms all
-
-# 自动选主题（基于内容关键词）
-node scripts/render.js --auto-theme --title "AI 数据报告" --platforms xiaohongshu-v
-
-# 列出可用主题
-node scripts/render.js --list-themes
-
-# 列出可用布局
-node scripts/render.js --list-layouts
-
-# 输出 HTML 不截图（调试）
-node scripts/render.js --preview --theme dark-gold --platforms wechat-cover
+node scripts/render.js --theme <theme> --layout cover --platforms <ids>
 ```
 
-## 旧版 CLI 兼容
-
-`--template 1` 自动映射到 `--theme minimal-white --layout cover`。旧用法继续工作。
+旧版 `--template 1-12` 仍兼容（映射到 12 个主题）。
 
 ---
 
@@ -267,74 +218,42 @@ node scripts/render.js --preview --theme dark-gold --platforms wechat-cover
 用户提供 URL / 文本 / content.json
     ↓
 Step 0: 提取品牌资产 (URL → logo + 主题色 + 字体)
-  → 自动抓, 用户可换 logo/改色
+  → 自动抓, 展示给用户
+  → ⬋ 等用户确认后才能继续
   → 文本输入则跳过
     ↓
 Step 1: 提取内容 (URL/文本 → 标题/正文/要点)
-  → 自动提取, 用户可改
+  → 自动提取, 展示给用户
+  → ⬋ 等用户确认/修改后才能继续
     ↓
-Step 2: 询问样式 (分两轮)
+Step 2: 询问样式 (分三轮)
   → 第一轮 (必答): 主题 + 平台
-  → 第二轮 (可选): 分类标签 + 二维码
-  → 用 agent 自带的交互工具 (有 UI 弹菜单, 无 UI 打印+读 stdin)
+  → ⬋ 等用户回答后才能继续
+  → 第二轮 (必答): logo + 品牌色
+  → ⬋ 等用户回答后才能继续
+  → 第三轮 (可选): 分类标签 + 二维码
+  → ⬋ 等用户回答后才能继续
     ↓
 Step 3: 渲染 (按选的主题/平台批量生成)
     ↓
 Step 4: 预览确认 / 迭代优化
 ```
 
----
-
-## 技术参考: extract.js 用法
-
-agent 调用 `extract.js` 提取内容的实际命令:
-
-**前置**: Node.js 18+ (自带 `fetch`, 无需额外依赖).
-
-```bash
-# URL 提取（项目根目录执行）
-node scripts/extract.js "https://..." > content.json
-
-# 纯文本提取
-node scripts/extract.js --text "标题\n正文内容\n- 要点1\n- 要点2" > content.json
-
-# 从文件读取
-node scripts/extract.js --file article.md > content.json
-```
-
-输出格式：
-```json
-{
-  "title": "主标题",
-  "body": "正文描述",
-  "points": ["要点1", "要点2"],
-  "brand": "品牌名 (从 og:site_name 抓, 可选)",
-  "brandImage": "data:image/png;... (从 og:image 抓, 可选)"
-}
-```
-
-注: `source` 字段已废弃, 不再生成. **无 Python 依赖** — 全栈 Node.js.
+**硬保护 (render.js hard gate)**：如果执行 render 时 content.json 没有 `brand` / `brandImage` 字段且没传 `--theme`，render.js 拒绝执行并打印明确错误（exit 1）。这是**跨 100% agent 平台**生效的兜底，不依赖 hook 机制。
 
 ---
 
-## 参考: 完整主题库 (12 个)
+---
 
-agent 在 Step 1 推荐主题时备查. 详细视觉特征:
+## 详细参考文档
 
-| # | 主题 | 底色 | 主色 | 视觉特征 | 适合 |
-|--:|------|------|------|---------|------|
-| 01 | minimal-white | `#FFFFFF` | `#5856E9` | 左侧内容+右侧 Indigo 装饰块, 品牌色驱动 | 品牌通用、教程、干货 |
-| 02 | dark-gold | #1A1A2E | #E2B714 | 对角分割+装饰圆, 渐变金字, 磨砂纹理 | 重磅消息、产品发布 |
-| 03 | editorial | #F5F0EB | #C0392B | 大引号+顶部分隔线, 红色点缀 | 深度分析、访谈 |
-| 04 | warm-handdrawn | #FDF6EC | #D97706 | 纸纹底+手绘下划线, 胶带装饰, 星星标记 | 个人故事、生活 |
-| 05 | tech-modern | #0F172A | #4FACFE | 终端点数+网格底, 代码注释前缀, 发光点缀 | AI/科技、数码 |
-| 06 | bold-poster | #000000 | #FF3355 | 对角大幅红色色块, 超大字体 | 金句引爆、活动 |
-| 07 | data-infographic | #F8FAFC | #10B981 | 数据卡片+进度条, 线图装饰 | 排行、报告、数据 |
-| 08 | eastern | #F7F3EE | #8D6E63 | 水墨晕染+竖排标题, 印章/竹线装饰 | 文化、哲思、诗词 |
-| 09 | magazine-cover | #F5F0EB | #4F46E5 | 全出血版式, 超大标题居中, 右下角品牌标签 | 精品文章、封面故事 |
-| 10 | split-screen | #FFFFFF | #4F46E5 | 左右双色背景, 一侧品牌色一侧留白 | 对比/双语/产品展示 |
-| 11 | minimal-white-editorial | #FAFAFA | #4F46E5 | 超多留白, 精致小字, 瑞士风排版 | 高端品牌、艺术、设计 |
-| 12 | list-ranking | #FFFFFF | #4F46E5 | 编号列表, 大号数字标记, 底部品牌条 | 排行榜、Top 10、步骤流程 |
+按需查阅，不要预先加载：
+
+- **[references/cli.md](references/cli.md)** — render.js 完整 CLI 参数
+- **[references/themes-catalog.md](references/themes-catalog.md)** — 12 主题详细视觉特征
+- **[references/platforms.md](references/platforms.md)** — 12 平台 ID + 尺寸
+- **[references/extract-api.md](references/extract-api.md)** — extract.js 内容提取 API
+- **[references/template-vars.md](references/template-vars.md)** — `{{TOKEN}}` 变量系统 + 设计原则
 
 ---
 
@@ -342,59 +261,31 @@ agent 在 Step 1 推荐主题时备查. 详细视觉特征:
 
 ```bash
 # 从 content.json 生成
-cd src/marketing/yuanfang-skills/yuanfang-html-image
 node scripts/render.js \
   --file /path/to/content.json \
-  --template 3 \
-  --output ./my-images
+  --theme <theme> \
+  --layout cover \
+  --platforms <ids>
 
-# 或直接传参数
-node scripts/render.js \
-  --title "AI 如何改变内容创作" \
-  --content "从写作到配图，AI 正在重新定义创意的边界。" \
-  --points "效率提升 10x|零门槛创作|AI 不是替代而是增强" \
-  --template 1 \
-  --output ./output
+# 调试（输出 HTML 不截图）
+node scripts/render.js --preview --theme tech-modern --platforms xiaohongshu-v
 ```
 
-### 输出（默认5种比例）
+更多参数和并行生成示例见 [references/cli.md](references/cli.md)。平台 ID 列表见 [references/platforms.md](references/platforms.md)。
 
-默认生成5种通用比例。通过 `--platforms` 可精确指定平台：
+---
 
-```bash
-# 指定平台
-node scripts/render.js --file content.json --template 1 --platforms xiaohongshu-v,moments,weibo
-
-# 全部平台
-node scripts/render.js --file content.json --template 1 --platforms all
-
-# 自定义尺寸
-node scripts/render.js --file content.json --template 1 --platforms custom:800x600
-
-# 印刷尺寸（自动启用 __PRINT 缩放）
-node scripts/render.js --file content.json --template 1 --platforms a4,a3
-```
-
-**可用平台 ID：** `xiaohongshu-v` (1080×1440), `xiaohongshu-s` (1080×1080), `wechat-cover` (900×383), `wechat-thumb` (300×300), `moments` (1080×1080), `weibo` (1080×608), `toutiao` (1080×500), `douyin-cover` (1080×1920), `bilibili-cover` (1920×1080), `twitter` (1200×675), `a4` (2480×3508, 300dpi), `a3` (3508×4960, 300dpi)
-
-**平台分组：** `xiaohongshu` (含竖版 + 方版), `wechat` (含公众号头图 + 小图 + 朋友圈)
-
-### 并行生成多个模板
-
-```bash
-cd src/marketing/yuanfang-skills/yuanfang-html-image
-node scripts/render.js --file content.json --template 1 --output ./out/t1 &
-node scripts/render.js --file content.json --template 5 --output ./out/t5 &
-wait
-```
+### [等待用户确认] 等用户回答第三轮后才能执行渲染
 
 ---
 
 ## Step 4: 预览确认
 
+### [等待用户确认] 展示图片给用户，等用户确认/要求修改后才能结束
+
 检查项：
 1. 文字内容完全正确？
-2. 布局在不同比例下正常？（特别是竖向文字的08号）
+2. 布局在不同比例下正常？
 3. 色彩和风格符合预期？
 4. 视觉层次清晰？（大字 > 中字 > 小字）
 
@@ -402,59 +293,11 @@ wait
 
 ## 模板设计说明
 
-每个模板在 `templates/[编号]-[名称]/` 下有两个文件：
+旧模板在 `templates/[编号]-[名称]/` 下有 `template.json`（配色/字体/字号）+ `template.html`（HTML 布局 + `{{TOKEN}}`）。
 
-- `template.json` — 配色、字体、字号配置（含 `badge`、`seal`、`brand` 等可选字段）
-- `template.html` — HTML 布局（使用 `{{TOKEN}}` 注入）
+**新代码应使用 `yuanfang-design/themes/*.css` + `yuanfang-design/layout-types/cover.html`，不要创建新模板目录**。
 
-### 模板变量系统
-
-渲染引擎支持以下变量注入：
-
-| 变量 | 来源 | 说明 |
-|------|------|------|
-| `{{TITLE}}` | content.title | 主标题 |
-| `{{CONTENT}}` | content.body/content | 正文（自动 `<br>` 换行） |
-| `{{SOURCE}}` | content.source | 文章来源 |
-| `{{POINTS_HTML}}` | content.points | 要点列表 (`<li>` 拼接) |
-| `{{W}}` / `{{H}}` | 平台配置 | 输出图片宽高 |
-| `{{BG}}` / `{{TEXT}}` | config.colors | 背景色 / 文字色 |
-| `{{ACCENT}}` / `{{SECONDARY}}` | config.colors | 品牌色 / 次要色 |
-| `{{FONT_TITLE}}` / `{{FONT_BODY}}` | config.fonts | 标题 / 正文字体栈 |
-| `{{TITLE_SIZE_V/S/W/C}}` | config.layout | 不同宽高比下的标题字号 |
-| `{{CONTENT_SIZE}}` | config.layout | 正文字号基准 |
-| `{{BRAND}}` | config.brand | 品牌名称（底部标记） |
-| `{{BADGE}}` | config.badge → content.badge | 徽章文字（如 "STORY"、"NEW"） |
-| `{{SEAL}}` | config.seal → config.brand → content.seal | 印章文字 |
-| `{{METRIC_1/2/3}}` | content.metric1/2/3 | 数据指标数值 |
-| `{{METRIC_LABEL_1/2/3}}` | content.metricLabel1/2/3 | 数据指标标签 |
-
-**高级语法：**
-
-1. **`{{COLOR__Axx}}` 带透明度品牌色** — 如 `{{ACCENT__A08}}` → `rgba(79,70,229,0.031)`。`xx` 为十六进制透明度值（00-FF），渲染引擎在 `{{TOKEN}}` 简单替换之前预处理，将 `{{ACCENT__A08}}` 转换为正确的 `rgba()`。
-
-2. **`{{SIZE__PRINT}}` 打印自动缩放** — 如 `calc({{CONTENT_SIZE__PRINT}} * 0.7)`。在 A4/A3 平台渲染时 `__PRINT` 后缀以 `calc(X * 2.5)` 输出，屏幕平台以 `calc(X * 1)` 输出。确保小字（source/badge/brand）在打印时自动放大。
-
-3. **配置优先级**：`{{BADGE}}` 优先取 `content.badge`，回退到 `config.badge`，再回退到字面量 `{{BADGE}}`。`{{SEAL}}` 类似，多一个回退到 `config.brand` 的层级。
-
-### 设计原则
-
-所有模板遵循现代社交媒体卡片设计原则：
-
-1. **3级视觉层次**: 钩子（超大2-3x）→ 上下文（50%钩子大小）→ 品牌（最小）
-2. **60-30-10配色**: 60%底色, 30%次要色块, 10%强调色
-3. **每个模板有标志性视觉元素**: 色块分割、装饰图形、背景纹理
-4. **响应式CSS**: 一个HTML模板适配5种宽高比，布局自动调整
-5. **零外部资源**: 所有装饰元素用纯CSS实现
-
-### 文件大小参考
-
-| 模板 | 单图大小 | 5张总大小 | 说明 |
-|------|---------|-----------|------|
-| 01 | ~65KB | ~330KB | 简洁，文件小 |
-| 02 | ~95KB | ~480KB | 渐变+纹理 |
-| 05 | ~83KB | ~420KB | 网格+终端圆点 |
-| 08 | ~113KB | ~570KB | 径向渐变+竖排文字 |
+完整 `{{TOKEN}}` 变量系统（`{{COLOR__Axx}}` 透明度、`{{SIZE__PRINT}}` 打印缩放、配置优先级）见 [references/template-vars.md](references/template-vars.md)。
 
 ---
 
@@ -462,25 +305,21 @@ wait
 
 ```
 yuanfang-html-image/
-├── SKILL.md
+├── SKILL.md                    # 本文件
+├── references/                 # 详细参考
+│   ├── cli.md
+│   ├── themes-catalog.md
+│   ├── platforms.md
+│   ├── extract-api.md
+│   └── template-vars.md
 ├── scripts/
-│   ├── render.js               # 核心渲染引擎 (Node.js)
-│   ├── extract.js              # 内容提取 (Node.js, URL/文本, 内置 fetch)
-│   └── extract-brand.js        # 品牌资产提取 (Node.js, URL → logo/colors/fonts)
-├── .yuanfang/                  # 品牌资产缓存 (项目级, 提交到 git)
-│   └── brand-specs/
+│   ├── render.js               # 核心渲染引擎
+│   ├── extract.js              # 内容提取
+│   └── extract-brand.js        # 品牌资产提取
+├── .yuanfang/                  # 品牌资产缓存 (项目级)
+│   ├── content-*.json          # content 草稿
+│   └── brand-specs/            # 抓到的 brand specs
 │       └── <domain>.json
-└── templates/                  # 旧版模板目录 (兼容性保留, 未来清理)
-    ├── 01-minimalist/
-    ├── 02-dark-gold/
-    ├── 03-editorial/
-    ├── 04-warm-handdrawn/
-    ├── 05-tech-modern/
-    ├── 06-bold-poster/
-    ├── 07-data-infographic/
-    ├── 08-eastern/
-    ├── 09-magazine-cover/
-    ├── 10-split-screen/
-    ├── 11-minimal-white/
-    └── 12-list-ranking/
+└── templates/                  # 旧版模板目录 (兼容保留)
 ```
+
