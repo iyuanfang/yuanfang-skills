@@ -17,6 +17,65 @@ description: |
 
 如需独立部署，需复制整个 `yuanfang-skills/` 仓库。
 
+---
+
+## 询问用户 (Step 0 — 任何 agent 必读)
+
+执行任何渲染之前, **agent 必须先向用户确认关键信息**. 不要替用户猜 — 猜错了浪费算力, 还得出图返工.
+
+### 必填 3 项 (内容)
+
+1. **标题** — 主标题
+2. **正文** — 一句话, 30-80 字
+3. **3 个要点** — bullet 列表, 每条 ≤12 字
+
+### 选填 3 项 (样式, 主动问)
+
+4. **主题** — 从 12 个主题中选 1 个
+   - 默认推荐: `minimal-white` (干净白底, 通用百搭)
+   - 内容情绪不明时, 主动给 2-3 个推荐 (按内容类型)
+5. **平台** — 从 6+ 个尺寸中选 1-N 个 (允许多选)
+   - 默认推荐: `xiaohongshu` 组 (覆盖小红书竖 + 方)
+   - 用户说 "全平台" / "全选" → 选全部
+6. **分类标签 (badge)** — 顶部小字
+   - 默认: 不渲染
+   - 常见: `FEATURED` / `TRENDING` / `ESSENTIAL` / `EXCLUSIVE` / `HOT` / `NEW`
+   - 含义对照见 `references/badge-meanings.md` (后续补)
+
+### 不主动问 (用户没提就不问)
+
+- **品牌 (brand)** — 左下角 logo 文字
+- **二维码 (qr)** — 中下角
+- **来源 (source)** — 已从布局移除, 不再使用
+
+### 询问方式 — 按 agent 能力自适应
+
+| Agent 能力 | 询问方式 |
+|---|---|
+| ✅ 有原生 UI 工具 (OpenCode `question` / Claude Code `AskUserQuestion`) | 弹选项菜单, 用户点击/键盘选 |
+| ⚠️ 无 UI 工具 (Codex / openclaw / 简陋 CLI agent) | 打印带编号的选项列表, 等用户从 stdin 输入编号 (1/2/3 或名称) |
+| ❓ 不确定 | 默认按有 UI 做, 失败退回打印+读 stdin |
+
+### 询问顺序 (避免一次问太多)
+
+1. **第一轮** — 主题 + 平台 (一题 2 个并列问题, 用户一并答)
+2. **第二轮** — 标题 + 正文 + 3 个要点 (开放式输入)
+3. **第三轮** — 分类标签 + 品牌 + 二维码 (可选, 用户回 "不用" 即跳过)
+
+最多 2-3 个问题一组, 等答完再问下一组. 一次问 5 个会吓跑用户.
+
+### 内容类型 → 主题推荐 (agent 备查)
+
+```
+干货/教程 → minimal-white / data-infographic / list-ranking
+重磅消息 → dark-gold / bold-poster / magazine-cover
+深度分析 → editorial / eastern / magazine-cover
+个人故事 → warm-handdrawn / minimal-white-editorial
+科技资讯 → tech-modern / split-screen / minimal-white-editorial
+```
+
+---
+
 ## 新版 CLI
 
 ```bash
@@ -61,16 +120,20 @@ node scripts/render.js --preview --theme dark-gold --platforms wechat-cover
 ```
 用户提供 文字/URL
     ↓
-[Step 0] 提取品牌（如无现成 brand-spec）
+[Step 0] 询问用户 (主题 / 平台 / 标签 / 品牌 / 二维码)
+  → 用 agent 自带的交互工具 (有 UI 则弹菜单, 无 UI 则打印+读 stdin)
+  → 用户没主动提的可选项默认跳过
+    ↓
+[Step 0.5] 提取品牌 (可选, 仅在无现成 brand-spec 时)
   → scripts/extract-brand.js --url <site>
   → 生成 brand-spec.md
     ↓
-Step 1: 提取内容（标题/正文/要点）
+Step 1: 提取内容 (标题/正文/要点)
+  → 来源: Step 0 收集 / URL 抓取 / 文本输入
     ↓
-Step 2: 选择模板（1-8号，推荐3个）
-  → 模板自动继承 brand-spec 色板
+Step 2: 选择模板 (主题已由 Step 0 决定, 此步仅做内容情绪校准)
     ↓
-Step 3: 一键生成全平台尺寸（5种比例 × 1种风格 = 5张图）
+Step 3: 一键生成全平台尺寸 (5种比例 × 1种风格 = 5张图)
     ↓
 Step 4: 预览确认 / 迭代优化
 ```
