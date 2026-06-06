@@ -1,8 +1,10 @@
 # Brand-spec cache (per project, but gitignore by default; commit manually if shared)
 .yuanfang/
 
-# Test outputs
+# Test outputs and rendered images
 /tmp/
+/yuanfang-html-image/output/
+/yuanfang-design/showcase/output/
 
 # Node
 node_modules/
