@@ -54,3 +54,46 @@ test('brand: empty content renders nothing', () => {
   });
   assert.ok(!result.includes('<img'));
 });
+
+test('QR: data:image URL passed through', () => {
+  const { isImageRef } = require('../scripts/render');
+  assert.strictEqual(isImageRef('data:image/png;base64,abc'), true);
+  assert.strictEqual(isImageRef('https://x.com/qr.png'), true);
+  assert.strictEqual(isImageRef('https://yuanfang.skills'), false);
+  assert.strictEqual(isImageRef('https://x.com'), false);
+});
+
+test('QR: URL string auto-generates data URL', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '', layoutHTML: '{{QR}}',
+    content: { qr: 'https://yuanfang.skills' },
+  });
+  assert.ok(result.includes('data:image/svg+xml;base64,'));
+  assert.ok(result.includes('class="cover__qr-img"'));
+});
+
+test('QR: pre-generated data URL used as-is', () => {
+  const pre = 'data:image/png;base64,PRE_GENERATED';
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '', layoutHTML: '{{QR}}',
+    content: { qr: pre },
+  });
+  assert.ok(result.includes(pre));
+});
+
+test('QR: image URL (.png/.jpg) used as-is', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '', layoutHTML: '{{QR}}',
+    content: { qr: 'https://x.com/qr.png' },
+  });
+  assert.ok(result.includes('https://x.com/qr.png'));
+  assert.ok(!result.includes('data:image/png;base64,'));
+});
+
+test('QR: empty renders nothing', () => {
+  const result = assembleHTML({
+    themeName: 'minimal-white', themeCSS: '', baseCSS: '', layoutHTML: '{{QR}}',
+    content: {},
+  });
+  assert.ok(!result.includes('cover__qr-img'));
+});

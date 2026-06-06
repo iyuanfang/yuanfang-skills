@@ -72,12 +72,13 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
   const brandHtml = content.brandImage
     ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
     : '';
+  const qrHtml = resolveQrHtml(content.qr);
   const tokens = {
     '{{TITLE}}':       content.title || '',
     '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),
     '{{SOURCE}}':      content.source || '',
     '{{BRAND}}':       brandHtml,
-    '{{QR}}':          content.qr ? `<img class="cover__qr-img" src="${content.qr}" alt="QR" />` : '',
+    '{{QR}}':          qrHtml,
     '{{SEAL}}':        content.seal || extractThemeDefault(themeCSS, 'seal'),
     '{{BADGE}}':       content.badge || '',
     '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${p}</li>`).join(''),
@@ -223,6 +224,44 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function isImageRef(s) {
+  if (!s) return false;
+  if (s.startsWith('data:image/')) return true;
+  if (/\.(png|jpg|jpeg|gif|webp|svg)(\?|#|$)/i.test(s)) return true;
+  return false;
+}
+
+function resolveQrHtml(qr) {
+  if (!qr) return '';
+  if (isImageRef(qr)) {
+    return `<img class="cover__qr-img" src="${qr}" alt="QR" />`;
+  }
+  let QR;
+  try {
+    QR = require('qrcode');
+  } catch {
+    return '';
+  }
+  try {
+    const matrix = QR.create(qr, { errorCorrectionLevel: 'M' });
+    const size = matrix.modules.size;
+    const data = matrix.modules.data;
+    let path = '';
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (data[y * size + x]) {
+          path += `M${x} ${y}h1v1h-1z`;
+        }
+      }
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" shape-rendering="crispEdges"><path d="${path}" fill="black"/></svg>`;
+    const dataUrl = 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64');
+    return `<img class="cover__qr-img" src="${dataUrl}" alt="QR" />`;
+  } catch {
+    return '';
+  }
 }
 
 function dateStamp() {
@@ -371,4 +410,5 @@ module.exports = {
   listThemes, listLayouts, loadTheme, loadLayout, loadBaseCSS,
   assembleHTML, renderHTML, parseArgs, resolveTemplate, resolvePlatforms,
   findBrandSpec, mergeBrandSpec, buildBrandOverrideCss,
+  isImageRef, resolveQrHtml,
 };

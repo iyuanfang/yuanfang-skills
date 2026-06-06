@@ -190,7 +190,12 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
   - 常见: `FEATURED` / `TRENDING` / `ESSENTIAL` / `EXCLUSIVE` / `HOT` / `NEW`
 - **二维码 (qr)** — 中下角
   - 默认: 不渲染
-  - 用户有现成二维码图片 (公众号 / 视频号 / 收款码) 才会提
+  - **3 种提供方式** (任选一种):
+    1. **URL** (推荐) — 传 `https://yuanfang.skills`, 渲染时自动生成 QR
+    2. **图片 data URL** — 传 `data:image/png;base64,...` (用户已有现成 QR)
+    3. **图片 URL** — 传 `https://x.com/qr.png` (有现成 QR 图)
+  - 智能检测: 以 `data:image/` 开头或 `.png/.jpg` 结尾 → 当图片用; 否则当 URL 自动生成
+  - 常见场景: 公众号文章链接、视频号主页、个人收款码
 
 ### 不再使用的兜底
 
