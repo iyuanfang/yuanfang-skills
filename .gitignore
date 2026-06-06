@@ -4,6 +4,7 @@
 # Test outputs and rendered images
 /tmp/
 /yuanfang-html-image/output/
+/yuanfang-html-ppt/tests/output/
 /yuanfang-design/showcase/output/
 /yuanfang-html-image/tests/.visual-tmp/
 /yuanfang-html-image/tests/.animation-out/
