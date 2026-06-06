@@ -121,9 +121,6 @@
   position: absolute;
   bottom: var(--space-3);
   left: var(--space-4);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
   font-family: var(--font-title);
   font-size: calc(var(--content-size) - 12px);
   font-weight: 700;
@@ -132,19 +129,11 @@
   color: var(--text);
   opacity: 0.85;
 }
-.cover__brand::before {
-  content: "";
-  display: inline-block;
-  width: 24px;
-  height: 2px;
-  background: currentColor;
-  border-radius: 1px;
-}
 
 .cover__qr {
   position: absolute;
   bottom: var(--space-3);
-  left: 50%;
+  left: var(--cover-center, 50%);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -159,16 +148,6 @@
   width: var(--qr-size, 64px);
   height: var(--qr-size, 64px);
   object-fit: contain;
-}
-
-.cover__source {
-  position: absolute;
-  bottom: var(--space-3);
-  right: var(--space-4);
-  font-size: var(--source-size);
-  color: var(--text);
-  opacity: 0.55;
-  letter-spacing: 0.15em;
 }
 
 .cover__decor {

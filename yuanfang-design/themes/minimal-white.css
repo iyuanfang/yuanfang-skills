@@ -35,4 +35,5 @@
 
   /* Right padding accounts for accent block (24% width) */
   --cover-pad-right: calc(24% + var(--space-4));
+  --cover-center: 38%;
 }

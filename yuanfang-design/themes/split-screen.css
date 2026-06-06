@@ -29,4 +29,5 @@
   --seal: "";
 
   --cover-pad-right: calc(50% + var(--space-4));
+  --cover-center: 25%;
 }
