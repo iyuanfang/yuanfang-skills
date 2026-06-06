@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; font-family: var(--font-body, system-ui); background: var(--bg, #fff); color: var(--text, #111); width: 10in; height: 5.625in; }
+  .quote-page { padding: 80px 100px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .quote-mark { font-size: 120pt; color: var(--accent, #4f46e5); line-height: 0.8; opacity: 0.5; }
+  .quote-text { font-size: 24pt; color: var(--text, #111); font-style: italic; max-width: 80%; line-height: 1.5; margin: 20px 0; }
+  .quote-attribution { font-size: 14pt; color: var(--secondary, #666); }
+</style>
+</head>
+<body>
+<div class="quote-page">
+  <div class="quote-mark">"</div>
+  <p class="quote-text">{{QUOTE}}</p>
+  <p class="quote-attribution">— {{ATTRIBUTION}}</p>
+</div>
+</body>
+</html>
