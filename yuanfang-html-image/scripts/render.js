@@ -71,7 +71,7 @@ function extractThemeDefault(themeCSS, varName) {
 function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080, brandOverrideCss = '' }) {
   const brandHtml = content.brandImage
     ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
-    : escapeHtml(content.brand || '');
+    : '';
   const tokens = {
     '{{TITLE}}':       content.title || '',
     '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),

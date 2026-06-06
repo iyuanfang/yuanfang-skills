@@ -23,14 +23,30 @@ description: |
 
 **第一步永远是品牌**, 因为它决定了"这套图属于谁". 用户给了 URL, 就自动把品牌资产全抓出来; 给了纯文本, 跳过这步.
 
-### URL 输入 → 自动抓品牌
+### URL 输入 → 自动抓品牌 (建议值, 不是终值)
 
 | 资产 | 来源 | 用途 |
 |---|---|---|
-| **logo 图片** | `<link rel="apple-touch-icon">` → `og:image` → favicon | 渲染左下角品牌位 |
-| **品牌名 (fallback)** | `og:site_name` → 域名 | logo 抓不到时用文字 |
-| **主题色** | 抓页面 CSS / og:color / 主页配色, 取主色 | 推荐主题 / 覆盖主题色 |
+| **logo 图片** | `<link rel="apple-touch-icon">` → `og:image` → favicon | 建议值, **Step 2 询问后用户决定** |
+| **品牌名** | `og:site_name` → 域名 | 仅供参考 |
+| **主题色** | `<meta name="theme-color">`, 兜底: logo 主色 | 建议值, **Step 2 询问后用户决定** |
 | **字体** | 页面 `@font-face` / Google Fonts link | 标题/正文字体建议 |
+
+### 抓取结果只作"建议", 用户始终有最终决定权
+
+**Step 0 抓到的东西不是终点, 是"默认值建议"**. Step 2 必须问用户:
+
+1. **logo** (不管抓没抓到都问):
+   - 抓到了: "抓到 logo: `data:image/png;...` 或 `<URL>`, 要展示吗? 用这个, 还是换 URL?"
+   - 没抓到: "要展示 logo 吗? 给个图片 URL/data URL, 或不要"
+   - 不用 logo → 左下角**完全空**, 不用文字兜底 (干净的图片)
+
+2. **品牌色** (不管抓没抓到都问):
+   - 抓到了: "抓到主题色: `#4B43E4`, 用这个, 还是换其他颜色?"
+   - 没抓到: "要替换主题色吗? 给个 hex (如 `#E11D48`), 或保持主题默认"
+   - 不用 → 主题默认色, 右 24% 块 = 主题 indigo
+
+**核心原则**: 自动提取是方便, **最终用户说了算**. 不静默 fallback, 不文字兜底.
 
 ### 实现
 
@@ -78,13 +94,13 @@ URL: https://yuanfang.skills/article/123
 
 ### 文本输入 → 跳过
 
-纯文本没有品牌信息, brand-spec 不生成. 后续 brand 字段也用 null, 不渲染.
+纯文本没有品牌信息, brand-spec 不生成. 进 Step 2 时**仍然要问 logo 和颜色**, 用户可以提供.
 
 ### 用户没给 URL 也没给文本
 
-跳过 Step 0. 后面 Step 2 询问时主动问 "要不要加 logo?" (这是例外, 因为没东西可提取).
+跳过 Step 0. 进 Step 2 时主动问 logo + 颜色 (跟文本输入一样的问法).
 
-### 展示给用户
+### Step 0 抓取后的展示 (仅供参考)
 
 ```
 我从 https://... 抓到了:
@@ -93,7 +109,7 @@ URL: https://yuanfang.skills/article/123
   主题色: #5856E9 (indigo)
   字体: Outfit / Inter
 
-继续吗? 或要换 logo/改色?
+(这些是建议值, 后面 Step 2 你可以改)
 ```
 
 用户确认 → 进 Step 1 (内容).
@@ -150,7 +166,24 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
   - 默认推荐: `xiaohongshu` 组 (覆盖小红书竖 + 方)
   - 用户说 "全平台" / "全选" → 选全部
 
-### 第二轮 (可选, 答 "不用" 跳过)
+### 第二轮 (logo + 颜色, 都要问)
+
+- **logo** — 左下角
+  - **抓到 logo**: 展示给用户 (URL 或 data URL), 问 "用这个, 换 URL, 还是要?"
+    - 用这个 → `content.brandImage = <extracted>`
+    - 换 URL → `content.brandImage = <new url>`
+    - 不要 → `content.brandImage = null` (左下角完全空)
+  - **没抓到**: 问 "要加 logo 吗? 给个 URL/data URL, 或不要"
+    - 给 URL → `content.brandImage = <url>`
+    - 不要 → `content.brandImage = null`
+- **品牌色** — `--accent` token
+  - **抓到主题色**: 展示给用户 (`#xxx`), 问 "用这个, 换颜色, 还是要?"
+    - 用这个 → `brand-spec.colors.primary = <extracted>`
+    - 换颜色 → `brand-spec.colors.primary = <new hex>`
+    - 不要 → `brand-spec.colors.primary = null` (主题默认)
+  - **没抓到**: 问 "要替换主题色吗? 给个 hex, 或保持主题默认"
+
+### 第三轮 (可选, 答 "不用" 跳过)
 
 - **分类标签 (badge)** — 顶部小字
   - 默认: 不渲染
@@ -158,6 +191,11 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 - **二维码 (qr)** — 中下角
   - 默认: 不渲染
   - 用户有现成二维码图片 (公众号 / 视频号 / 收款码) 才会提
+
+### 不再使用的兜底
+
+- ~~品牌名文字 fallback~~: 如果没 logo, 左下角**完全空**, 不显示 "AICS" 这类文字
+- ~~主题默认色兜底~~: 改成"显式问用户要不要换", 不要静默用主题默认
 
 ### 询问方式 — 按 agent 能力自适应
 

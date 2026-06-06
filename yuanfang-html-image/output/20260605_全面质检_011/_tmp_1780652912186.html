@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080, height=1080">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1080px; height: 1080px;
+  font-family: "Outfit","PingFang SC",-apple-system,sans-serif;
+  background: #FAFAFA;
+  color: #1A1A2E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+/* ultra thin top accent line */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: #4F46E5;
+  opacity: 0.3;
+  z-index: 2;
+}
+/* very subtle texture */
+body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, #4F46E5 0px, transparent 1px),
+    radial-gradient(circle at 80% 70%, #4F46E5 0px, transparent 1px);
+  background-size: 80px 80px;
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 0;
+}
+/* tiny accent dot */
+.dot {
+  position: absolute;
+  border-radius: 50%;
+  background: #4F46E5;
+  pointer-events: none;
+}
+.dot-1 {
+  width: 6px; height: 6px;
+  top: 50%; right: 15%;
+  transform: translateY(-50%);
+  opacity: 0.25;
+}
+.dot-2 {
+  width: 4px; height: 4px;
+  bottom: 22%; left: 12%;
+  opacity: 0.15;
+}
+/* thin horizontal rules */
+.rule {
+  position: absolute;
+  height: 1px;
+  background: #4F46E5;
+  opacity: 0.08;
+  pointer-events: none;
+}
+.rule-t {
+  top: 20%; left: 8%; right: 8%;
+}
+.rule-b {
+  bottom: 20%; left: 8%; right: 8%;
+}
+.container {
+  position: relative;
+  z-index: 1;
+  width: 52%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 40px;
+}
+/* thin divider above/below content */
+.container::before {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: #4F46E5;
+  opacity: 0.2;
+  margin-bottom: 32px;
+}
+.container::after {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: #4F46E5;
+  opacity: 0.2;
+  margin-top: 32px;
+}
+.title {
+  font-size: 72px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #1A1A2E;
+  margin-bottom: 20px;
+}
+.content {
+  font-family: "Outfit","PingFang SC",-apple-system,sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.04em;
+  color: #9CA3AF;
+  max-width: 88%;
+}
+.points {
+  list-style: none;
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.points li {
+  font-family: "Outfit","PingFang SC",-apple-system,sans-serif;
+  font-size: calc(20px - 6px);
+  font-weight: 400;
+  color: #9CA3AF;
+  padding: 4px 16px;
+  letter-spacing: 0.06em;
+  position: relative;
+}
+.points li + li::before {
+  content: '/';
+  position: absolute;
+  left: -6px;
+  color: #4F46E5;
+  opacity: 0.15;
+  font-weight: 300;
+}
+.points:empty { display: none; }
+.source {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Outfit","PingFang SC",-apple-system,sans-serif;
+  font-size: calc(calc(20px * 1) * 0.4);
+  color: #9CA3AF;
+  opacity: 0.4;
+  letter-spacing: 0.2em;
+  font-weight: 400;
+  z-index: 1;
+}
+.brand {
+  position: absolute;
+  bottom: 36px;
+  right: 40px;
+  font-family: "Outfit","PingFang SC",-apple-system,sans-serif;
+  font-size: calc(calc(20px * 1) * 0.4);
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  color: #9CA3AF;
+  opacity: 0.4;
+  text-transform: uppercase;
+  z-index: 1;
+}
+@media (max-aspect-ratio: 4/5) {
+  .title { font-size: 60px; }
+  .container { width: 62%; padding: 60px 32px; }
+  .container::before { margin-bottom: 24px; }
+  .container::after { margin-top: 24px; }
+  .content { max-width: 92%; font-size: calc(20px - 2px); }
+  .brand { right: 28px; bottom: 28px; }
+  .source { bottom: 28px; }
+  .dot-1 { right: 10%; }
+  .rule-t { top: 14%; }
+  .rule-b { bottom: 14%; }
+}
+@media (min-aspect-ratio: 5/4) {
+  .title { font-size: 52px; }
+  .container { width: 48%; padding: 60px 40px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .container::before { margin-bottom: 20px; }
+  .container::after { margin-top: 20px; }
+  .content { max-width: 80%; }
+  .brand { bottom: 28px; right: 36px; }
+  .source { bottom: 28px; }
+  .dot-1 { right: 12%; }
+  .dot-2 { display: none; }
+}
+@media (min-aspect-ratio: 7/3) {
+  .title { font-size: 42px; }
+  .container { width: 55%; padding: 40px 48px; flex-direction: row; gap: 16px; }
+  .container::before { margin-bottom: 12px; }
+  .container::after { margin-top: 12px; }
+  .content { max-width: 70%; font-size: calc(20px - 4px); }
+  .points { margin-top: 12px; }
+  .dot-1, .dot-2, .rule-t, .rule-b { display: none; }
+  .brand { bottom: 20px; right: 32px; }
+  .source { bottom: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="dot dot-1"></div>
+<div class="dot dot-2"></div>
+<div class="rule rule-t"></div>
+<div class="rule rule-b"></div>
+<div class="container">
+  <h1 class="title">全面质检</h1>
+  <div class="content">验证该模板在全部平台尺寸下均可正确渲染输出，无溢出、无截断、无色值异常。</div>
+  <ul class="points"></ul>
+</div>
+<div class="source">https://example.com</div>
+<div class="brand">极简留白</div>
+</body>
+</html>
