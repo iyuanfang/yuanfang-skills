@@ -36,29 +36,49 @@ description: |
 
 ```bash
 # agent 调用 (在项目根目录)
-python3 scripts/extract-brand.py "https://example.com/article" > brand-spec.json
+python3 scripts/extract-brand.py "https://example.com/article"
 ```
 
-输出 `brand-spec.json`:
+输出存到项目本地 `./.yuanfang/brand-specs/<domain>.json`:
+
 ```json
 {
-  "logo": "data:image/png;base64,...",  // 或 URL
-  "name": "Example",
-  "colors": {
-    "primary": "#5856E9",
-    "secondary": "#64748B",
-    "background": "#FFFFFF"
-  },
-  "fonts": {
-    "title": "Outfit",
-    "body": "Inter"
-  }
+  "domain": "yuanfang.skills",
+  "extractedAt": "2026-06-06T10:30:00Z",
+  "logo": "data:image/png;base64,...",
+  "name": "Yuanfang",
+  "colors": { "primary": "#5856E9", ... },
+  "fonts": { "title": "Outfit", "body": "Inter" }
 }
+```
+
+### 缓存策略 (项目级)
+
+`./.yuanfang/brand-specs/<domain>.json` 自动缓存, **项目内复用**:
+
+- 同一个项目再访问同一 domain, **直接读缓存, 不重新抓**
+- TTL 默认 7 天, 过期自动重抓
+- 强制刷新: `--refresh-brand` flag
+- **没有全局缓存** — 品牌是项目资产, 不是用户资产. 团队成员通过 git 共享 `.yuanfang/`
+
+### 缓存查找流程
+
+```
+URL: https://yuanfang.skills/article/123
+    ↓
+提取 domain: yuanfang.skills
+    ↓
+查 ./.yuanfang/brand-specs/yuanfang.skills.json ?
+    ├─ 存在且未过期 → 直接用
+    ├─ 存在但过期 → 重新抓, 覆盖
+    └─ 不存在 → 抓取, 写入
+    ↓
+返回 brand-spec
 ```
 
 ### 文本输入 → 跳过
 
-纯文本没有品牌信息, brand-spec 为空. 后续 Step 1 提取的 brand 字段也用 null, 不渲染.
+纯文本没有品牌信息, brand-spec 不生成. 后续 brand 字段也用 null, 不渲染.
 
 ### 用户没给 URL 也没给文本
 
@@ -68,8 +88,8 @@ python3 scripts/extract-brand.py "https://example.com/article" > brand-spec.json
 
 ```
 我从 https://... 抓到了:
-  logo: ✓ 抓到 (256×256 PNG)
-  品牌名: Example
+  logo: ✓ 抓到 (256×256 PNG)  → 存到 ./.yuanfang/brand-specs/yuanfang.skills.json
+  品牌名: Yuanfang
   主题色: #5856E9 (indigo)
   字体: Outfit / Inter
 
