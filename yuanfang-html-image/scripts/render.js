@@ -244,9 +244,14 @@ function resolveOutputDir(content, args) {
 }
 
 function findBrandSpec(content, args) {
+  if (args['brand-spec']) {
+    const p = path.resolve(args['brand-spec']);
+    if (fs.existsSync(p) && p.endsWith('.json')) {
+      return JSON.parse(fs.readFileSync(p, 'utf-8'));
+    }
+  }
   const searchDirs = [];
   if (args.file) searchDirs.push(path.dirname(path.resolve(args.file)));
-  if (args['brand-spec']) searchDirs.push(path.resolve(args['brand-spec']));
   searchDirs.push(process.cwd());
 
   for (const dir of searchDirs) {
@@ -263,6 +268,16 @@ function findBrandSpec(content, args) {
         return JSON.parse(fs.readFileSync(target, 'utf-8'));
       }
     }
+    for (const f of files) {
+      const spec = JSON.parse(fs.readFileSync(path.join(brandDir, f), 'utf-8'));
+      if (spec.name && content.brand && spec.name.toLowerCase() === content.brand.toLowerCase()) {
+        return spec;
+      }
+    }
+    if (content.brand) {
+      process.stderr.write(`note: multiple brand-specs (${files.length}), no match for "${content.brand}"; using first (${files[0]})\n`);
+    }
+    return JSON.parse(fs.readFileSync(path.join(brandDir, files[0]), 'utf-8'));
   }
   return null;
 }
@@ -355,5 +370,5 @@ if (require.main === module) {
 module.exports = {
   listThemes, listLayouts, loadTheme, loadLayout, loadBaseCSS,
   assembleHTML, renderHTML, parseArgs, resolveTemplate, resolvePlatforms,
-  mergeBrandSpec, buildBrandOverrideCss,
+  findBrandSpec, mergeBrandSpec, buildBrandOverrideCss,
 };
