@@ -68,7 +68,7 @@ function extractThemeDefault(themeCSS, varName) {
   return m ? m[1].trim() : '';
 }
 
-function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080 }) {
+function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080, brandOverrideCss = '' }) {
   const brandHtml = content.brandImage
     ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
     : escapeHtml(content.brand || '');
@@ -96,6 +96,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
 <style>
 ${baseCSS}
 ${themeCSS}
+${brandOverrideCss}
 body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: hidden; }
 .cover { width: ${width}px; height: ${height}px; }
 </style>
@@ -275,6 +276,11 @@ function mergeBrandSpec(content, spec) {
   return out;
 }
 
+function buildBrandOverrideCss(spec, themeName) {
+  if (!spec || !spec.colors || !spec.colors.primary) return '';
+  return `[data-theme="${themeName}"] { --accent: ${spec.colors.primary}; }\n`;
+}
+
 function main() {
   const args = parseArgs(process.argv);
 
@@ -303,6 +309,7 @@ function main() {
   const themeCSS = loadTheme(theme);
   const baseCSS = loadBaseCSS();
   const layoutHTML = loadLayout(layout);
+  const brandOverrideCss = buildBrandOverrideCss(spec, theme);
 
   const platforms = resolvePlatforms(args);
   const outputDir = resolveOutputDir(content, args);
@@ -314,7 +321,7 @@ function main() {
 
   for (const platform of platforms) {
     const html = assembleHTML({
-      themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged,
+      themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged, brandOverrideCss,
       width: platform.width, height: platform.height,
     });
 
@@ -337,4 +344,5 @@ if (require.main === module) {
 module.exports = {
   listThemes, listLayouts, loadTheme, loadLayout, loadBaseCSS,
   assembleHTML, renderHTML, parseArgs, resolveTemplate, resolvePlatforms,
+  mergeBrandSpec, buildBrandOverrideCss,
 };
