@@ -11,21 +11,41 @@ test('buildBrandOverrideCss: no colors returns empty', () => {
   assert.strictEqual(buildBrandOverrideCss(spec, 'minimal-white'), '');
 });
 
-test('buildBrandOverrideCss: no primary returns empty', () => {
-  const spec = { colors: { secondary: '#FFF' } };
+test('buildBrandOverrideCss: empty colors object returns empty', () => {
+  const spec = { colors: {} };
   assert.strictEqual(buildBrandOverrideCss(spec, 'minimal-white'), '');
 });
 
-test('buildBrandOverrideCss: emits [data-theme] override', () => {
+test('buildBrandOverrideCss: single color (primary only)', () => {
   const spec = { colors: { primary: '#FF5733' } };
   const css = buildBrandOverrideCss(spec, 'minimal-white');
   assert.ok(css.includes('[data-theme="minimal-white"]'));
   assert.ok(css.includes('--accent: #FF5733'));
+  assert.ok(!css.includes('--bg:'));
+  assert.ok(!css.includes('--secondary:'));
 });
 
-test('buildBrandOverrideCss: uses correct theme name', () => {
-  const css = buildBrandOverrideCss({ colors: { primary: '#000' } }, 'dark-gold');
+test('buildBrandOverrideCss: all three colors', () => {
+  const spec = { colors: { primary: '#FF5733', background: '#FAFAFA', secondary: '#1F2937' } };
+  const css = buildBrandOverrideCss(spec, 'dark-gold');
+  assert.ok(css.includes('--accent: #FF5733'));
+  assert.ok(css.includes('--bg: #FAFAFA'));
+  assert.ok(css.includes('--secondary: #1F2937'));
   assert.ok(css.includes('[data-theme="dark-gold"]'));
+});
+
+test('buildBrandOverrideCss: skips null colors but keeps defined', () => {
+  const spec = { colors: { primary: '#FF5733', background: null, secondary: '#1F2937' } };
+  const css = buildBrandOverrideCss(spec, 'minimal-white');
+  assert.ok(css.includes('--accent: #FF5733'));
+  assert.ok(!css.includes('--bg:'));
+  assert.ok(css.includes('--secondary: #1F2937'));
+});
+
+test('buildBrandOverrideCss: ignores unknown color keys', () => {
+  const spec = { colors: { primary: '#000', tertiary: '#FFF' } };
+  const css = buildBrandOverrideCss(spec, 'minimal-white');
+  assert.ok(!css.includes('tertiary'));
 });
 
 test('mergeBrandSpec: fills missing brand from spec', () => {

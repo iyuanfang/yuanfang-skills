@@ -6,6 +6,10 @@ const os = require('os');
 const {
   extractDomain,
   extractBrandFromHtml,
+  resolveImageAsDataUrl,
+  dataUrlToBuffer,
+  rgbToHex,
+  extractDominantColor,
   readCache,
   writeCache,
   isExpired,
@@ -120,4 +124,61 @@ test('parseArgs: no url throws', () => {
 
 test('TTL_DAYS default is 7', () => {
   assert.strictEqual(TTL_DAYS, 7);
+});
+
+test('rgbToHex: basic colors', () => {
+  assert.strictEqual(rgbToHex(255, 87, 51), '#FF5733');
+  assert.strictEqual(rgbToHex(0, 0, 0), '#000000');
+  assert.strictEqual(rgbToHex(255, 255, 255), '#FFFFFF');
+});
+
+test('dataUrlToBuffer: parses data URL', () => {
+  const png = Buffer.from([0x89, 0x50, 0x4E, 0x47]).toString('base64');
+  const url = `data:image/png;base64,${png}`;
+  const r = dataUrlToBuffer(url);
+  assert.strictEqual(r.mime, 'image/png');
+  assert.strictEqual(r.buffer.toString('hex'), '89504e47');
+});
+
+test('dataUrlToBuffer: invalid returns null', () => {
+  assert.strictEqual(dataUrlToBuffer('not a data url'), null);
+  assert.strictEqual(dataUrlToBuffer(''), null);
+});
+
+test('extractDominantColor: red PNG returns reddish hex', async () => {
+  const sharp = require('sharp');
+  const buf = await sharp({
+    create: { width: 32, height: 32, channels: 3, background: { r: 220, g: 38, b: 38 } }
+  }).png().toBuffer();
+  const dataUrl = `data:image/png;base64,${buf.toString('base64')}`;
+  const hex = await extractDominantColor(dataUrl);
+  assert.ok(hex);
+  assert.match(hex, /^#[0-9A-F]{6}$/);
+  assert.strictEqual(hex, '#DC2626');
+});
+
+test('extractDominantColor: null for empty input', async () => {
+  assert.strictEqual(await extractDominantColor(null), null);
+  assert.strictEqual(await extractDominantColor(''), null);
+  assert.strictEqual(await extractDominantColor('invalid'), null);
+});
+
+test('extractBrandFromHtml: dark mode theme-color captured', () => {
+  const html = `
+    <html>
+    <head>
+      <meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+      <meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)">
+    </head>
+    </html>`;
+  const b = extractBrandFromHtml(html, 'https://acme.com/');
+  assert.strictEqual(b.colors.primary, '#FAFAFA');
+  assert.strictEqual(b.colors.primaryDark, '#0A0A0A');
+});
+
+test('extractBrandFromHtml: no theme-color → null', () => {
+  const html = '<html><head></head></html>';
+  const b = extractBrandFromHtml(html, 'https://acme.com/');
+  assert.strictEqual(b.colors.primary, null);
+  assert.strictEqual(b.colors.primaryDark, null);
 });

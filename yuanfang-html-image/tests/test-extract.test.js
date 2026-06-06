@@ -4,6 +4,7 @@ const {
   htmlDecode,
   getMetaContent,
   getLinkHref,
+  getThemeColor,
   stripTags,
   extractTitle,
   extractBody,
@@ -209,4 +210,29 @@ test('parseArgs: no args throws', () => {
 
 test('parseArgs: --file without path throws', () => {
   assert.throws(() => parseArgs(['node', 'extract.js', '--file']), /requires/);
+});
+
+test('getThemeColor: light mode (no media attr)', () => {
+  const html = '<meta name="theme-color" content="#FF5733">';
+  assert.strictEqual(getThemeColor(html, 'light'), '#FF5733');
+});
+
+test('getThemeColor: dark mode with media attr', () => {
+  const html = '<meta name="theme-color" content="#111" media="(prefers-color-scheme: dark)">';
+  assert.strictEqual(getThemeColor(html, 'dark'), '#111');
+});
+
+test('getThemeColor: light mode with media attr', () => {
+  const html = '<meta name="theme-color" content="#FFF" media="(prefers-color-scheme: light)">';
+  assert.strictEqual(getThemeColor(html, 'light'), '#FFF');
+});
+
+test('getThemeColor: dark mode media=light returns null', () => {
+  const html = '<meta name="theme-color" content="#FFF" media="(prefers-color-scheme: light)">';
+  assert.strictEqual(getThemeColor(html, 'dark'), null);
+});
+
+test('getThemeColor: missing returns null', () => {
+  assert.strictEqual(getThemeColor('<html></html>', 'light'), null);
+  assert.strictEqual(getThemeColor('<html></html>', 'dark'), null);
 });

@@ -42,6 +42,22 @@ function getLinkHref(html, rel) {
   return null;
 }
 
+function getThemeColor(html, scheme = 'light') {
+  const want = scheme === 'dark' ? 'dark' : 'light';
+  const reWithMedia = new RegExp(
+    `<meta\\s+name=["']theme-color["']\\s+content=["']([^"']+)["']\\s+media=["']\\([^)]*prefers-color-scheme:\\s*${want}[^)]*\\)["']`, 'i');
+  let m = html.match(reWithMedia);
+  if (m) return htmlDecode(m[1]);
+  const reMediaFirst = new RegExp(
+    `<meta\\s+media=["']\\([^)]*prefers-color-scheme:\\s*${want}[^)]*\\)[^>]*name=["']theme-color["']\\s+content=["']([^"']+)["']`, 'i');
+  m = html.match(reMediaFirst);
+  if (m) return htmlDecode(m[1]);
+  if (scheme === 'light') {
+    return getMetaContent(html, 'theme-color');
+  }
+  return null;
+}
+
 function stripTags(html) {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -171,6 +187,7 @@ module.exports = {
   htmlDecode,
   getMetaContent,
   getLinkHref,
+  getThemeColor,
   stripTags,
   extractTitle,
   extractBody,

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const { getMetaContent, getLinkHref, extractFromHtml } = require('./extract.js');
+const { getMetaContent, getLinkHref, getThemeColor, extractFromHtml } = require('./extract.js');
 
 const CACHE_DIR = path.join(process.cwd(), '.yuanfang', 'brand-specs');
 const TTL_DAYS = 7;
@@ -38,6 +38,39 @@ function resolveImageAsDataUrl(url) {
     });
 }
 
+function dataUrlToBuffer(dataUrl) {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) return null;
+  return { mime: m[1], buffer: Buffer.from(m[2], 'base64') };
+}
+
+function rgbToHex(r, g, b) {
+  const h = n => n.toString(16).padStart(2, '0');
+  return `#${h(r)}${h(g)}${h(b)}`.toUpperCase();
+}
+
+async function extractDominantColor(dataUrl) {
+  if (!dataUrl) return null;
+  const parsed = dataUrlToBuffer(dataUrl);
+  if (!parsed) return null;
+  let sharp;
+  try {
+    sharp = require('sharp');
+  } catch {
+    return null;
+  }
+  try {
+    const { data, info } = await sharp(parsed.buffer)
+      .resize(1, 1, { fit: 'cover' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    return rgbToHex(data[0], data[1], data[2]);
+  } catch {
+    return null;
+  }
+}
+
 function extractBrandFromHtml(html, url) {
   const domain = extractDomain(url);
   const siteName = getMetaContent(html, 'site_name');
@@ -45,7 +78,9 @@ function extractBrandFromHtml(html, url) {
   const appleIcon = getLinkHref(html, 'apple-touch-icon')
     || getLinkHref(html, 'apple-touch-icon-precomposed')
     || getLinkHref(html, 'icon');
-  const themeColor = getMetaContent(html, 'theme-color');
+  const themeColorLight = getThemeColor(html, 'light');
+  const themeColorDark = getThemeColor(html, 'dark');
+  const themeColor = themeColorLight;
 
   let logoUrl = null;
   if (ogImage) {
@@ -62,6 +97,9 @@ function extractBrandFromHtml(html, url) {
     logoUrl,
     colors: {
       primary: themeColor || null,
+      primaryDark: themeColorDark || null,
+      background: null,
+      secondary: null,
     },
   };
 }
@@ -77,6 +115,10 @@ async function fetchBrand(url) {
   if (brand.logoUrl) {
     try {
       brand.logo = await resolveImageAsDataUrl(brand.logoUrl);
+      if (!brand.colors.primary) {
+        const logoColor = await extractDominantColor(brand.logo);
+        if (logoColor) brand.colors.primary = logoColor;
+      }
     } catch (e) {
       process.stderr.write(`warn: failed to download logo (${e.message})\n`);
     }
@@ -150,6 +192,9 @@ module.exports = {
   extractDomain,
   extractBrandFromHtml,
   resolveImageAsDataUrl,
+  dataUrlToBuffer,
+  rgbToHex,
+  extractDominantColor,
   fetchBrand,
   readCache,
   writeCache,

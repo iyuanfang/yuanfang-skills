@@ -277,8 +277,19 @@ function mergeBrandSpec(content, spec) {
 }
 
 function buildBrandOverrideCss(spec, themeName) {
-  if (!spec || !spec.colors || !spec.colors.primary) return '';
-  return `[data-theme="${themeName}"] { --accent: ${spec.colors.primary}; }\n`;
+  if (!spec || !spec.colors) return '';
+  const c = spec.colors;
+  const map = {
+    '--accent': c.primary,
+    '--bg': c.background,
+    '--secondary': c.secondary,
+  };
+  const decls = Object.entries(map)
+    .filter(([, v]) => v)
+    .map(([k, v]) => `  ${k}: ${v};`)
+    .join('\n');
+  if (!decls) return '';
+  return `[data-theme="${themeName}"] {\n${decls}\n}\n`;
 }
 
 function main() {
