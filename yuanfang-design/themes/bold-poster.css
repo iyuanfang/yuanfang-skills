@@ -15,6 +15,7 @@
   --title-size-w: 96px;
   --title-size-c: 72px;
   --content-size: 40px;
+  --qr-size: 64px;
 
   --decor-tl: linear-gradient(135deg, var(--accent) 0%, transparent 50%);
   --decor-tr: none;

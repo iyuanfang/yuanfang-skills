@@ -74,6 +74,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
     '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),
     '{{SOURCE}}':      content.source || '',
     '{{BRAND}}':       content.brand || '',
+    '{{QR}}':          content.qr ? `<img class="cover__qr-img" src="${content.qr}" alt="QR" />` : '',
     '{{SEAL}}':        content.seal || extractThemeDefault(themeCSS, 'seal'),
     '{{BADGE}}':       content.badge || '',
     '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${p}</li>`).join(''),

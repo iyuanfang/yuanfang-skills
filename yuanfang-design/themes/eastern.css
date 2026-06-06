@@ -15,6 +15,7 @@
   --title-size-w: 76px;
   --title-size-c: 58px;
   --content-size: 34px;
+  --qr-size: 64px;
 
   --decor-tl: radial-gradient(circle at 40% 35%, rgba(141,110,99,.08), transparent 55%);
   --decor-tr: none;
