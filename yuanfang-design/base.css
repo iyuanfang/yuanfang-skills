@@ -12,8 +12,8 @@
   --bg-alt: #F8FAFC;      /* card / alt background */
 
   /* === Type === */
-  --font-title: "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
-  --font-body:  "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+  --font-title: system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
+  --font-body:  system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
 
   /* === Size (per aspect ratio) === */
   --title-size-v: 130px;  /* 3:4 portrait + 9:16 tall */
