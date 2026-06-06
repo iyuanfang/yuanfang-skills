@@ -121,6 +121,8 @@
   position: absolute;
   bottom: var(--space-3);
   left: var(--space-4);
+  display: flex;
+  align-items: center;
   font-family: var(--font-title);
   font-size: calc(var(--content-size) - 12px);
   font-weight: 700;
@@ -128,6 +130,15 @@
   text-transform: uppercase;
   color: var(--text);
   opacity: 0.85;
+  max-height: calc(var(--content-size) + 8px);
+}
+.cover__brand-img {
+  height: calc(var(--content-size) - 4px);
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  display: block;
+  opacity: 0.92;
 }
 
 .cover__qr {

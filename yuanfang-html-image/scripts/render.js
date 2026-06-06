@@ -69,11 +69,14 @@ function extractThemeDefault(themeCSS, varName) {
 }
 
 function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080 }) {
+  const brandHtml = content.brandImage
+    ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
+    : escapeHtml(content.brand || '');
   const tokens = {
     '{{TITLE}}':       content.title || '',
     '{{CONTENT}}':     (content.body || content.content || '').replace(/\n/g, '<br>'),
     '{{SOURCE}}':      content.source || '',
-    '{{BRAND}}':       content.brand || '',
+    '{{BRAND}}':       brandHtml,
     '{{QR}}':          content.qr ? `<img class="cover__qr-img" src="${content.qr}" alt="QR" />` : '',
     '{{SEAL}}':        content.seal || extractThemeDefault(themeCSS, 'seal'),
     '{{BADGE}}':       content.badge || '',
@@ -212,6 +215,15 @@ function takeScreenshot(html, outputPath, platform) {
   if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
 }
 
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function dateStamp() {
   const d = new Date();
   return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
@@ -228,6 +240,39 @@ function resolveOutputDir(content, args) {
     ? Math.max(...existing.map(d => { const m = d.match(/_(\d+)$/); return m ? parseInt(m[1]) : 0; })) + 1
     : 1;
   return path.join(root, `${prefix}_${String(seq).padStart(3, '0')}`);
+}
+
+function findBrandSpec(content, args) {
+  const searchDirs = [];
+  if (args.file) searchDirs.push(path.dirname(path.resolve(args.file)));
+  if (args['brand-spec']) searchDirs.push(path.resolve(args['brand-spec']));
+  searchDirs.push(process.cwd());
+
+  for (const dir of searchDirs) {
+    const brandDir = path.join(dir, '.yuanfang', 'brand-specs');
+    if (!fs.existsSync(brandDir)) continue;
+    const files = fs.readdirSync(brandDir).filter(f => f.endsWith('.json'));
+    if (files.length === 0) continue;
+    if (files.length === 1) {
+      return JSON.parse(fs.readFileSync(path.join(brandDir, files[0]), 'utf-8'));
+    }
+    if (content.brandDomain) {
+      const target = path.join(brandDir, `${content.brandDomain}.json`);
+      if (fs.existsSync(target)) {
+        return JSON.parse(fs.readFileSync(target, 'utf-8'));
+      }
+    }
+  }
+  return null;
+}
+
+function mergeBrandSpec(content, spec) {
+  if (!spec) return content;
+  const out = { ...content };
+  if (!out.brand && spec.name) out.brand = spec.name;
+  if (!out.brandImage && spec.logo) out.brandImage = spec.logo;
+  if (!out.brandDomain && spec.domain) out.brandDomain = spec.domain;
+  return out;
 }
 
 function main() {
@@ -251,6 +296,9 @@ function main() {
         points: (args.points || '').split('|').filter(Boolean),
       };
 
+  const spec = findBrandSpec(content, args);
+  const merged = mergeBrandSpec(content, spec);
+
   const { theme, layout } = resolveTemplate(args);
   const themeCSS = loadTheme(theme);
   const baseCSS = loadBaseCSS();
@@ -266,7 +314,7 @@ function main() {
 
   for (const platform of platforms) {
     const html = assembleHTML({
-      themeName: theme, themeCSS, baseCSS, layoutHTML, content,
+      themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged,
       width: platform.width, height: platform.height,
     });
 
