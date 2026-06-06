@@ -7,8 +7,8 @@
   --secondary: #A0896B;
   --bg-alt: #FFFFFF;
 
-  --font-title: "Caveat", "Patrick Hand", "PingFang SC", cursive;
-  --font-body: "Patrick Hand", "PingFang SC", sans-serif;
+  --font-title: "Caveat", "Patrick Hand", system-ui, -apple-system, "PingFang SC", cursive;
+  --font-body: "Patrick Hand", system-ui, -apple-system, "PingFang SC", sans-serif;
 
   --title-size-v: 130px;
   --title-size-s: 100px;

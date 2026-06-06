@@ -7,8 +7,8 @@
   --secondary: #6B7280;
   --bg-alt: #1A1A2E;
 
-  --font-title: "Playfair Display", "Lora", "PingFang SC", serif;
-  --font-body: "Lora", "PingFang SC", serif;
+  --font-title: "Playfair Display", "Lora", system-ui, -apple-system, "PingFang SC", serif;
+  --font-body: "Lora", system-ui, -apple-system, "PingFang SC", serif;
 
   --title-size-v: 120px;
   --title-size-s: 96px;

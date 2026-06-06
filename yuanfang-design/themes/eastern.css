@@ -7,8 +7,8 @@
   --secondary: #A09080;
   --bg-alt: #FFFFFF;
 
-  --font-title: "Ma Shan Zheng", "Noto Serif SC", "PingFang SC", serif;
-  --font-body: "Noto Serif SC", "PingFang SC", sans-serif;
+  --font-title: "Ma Shan Zheng", "Noto Serif SC", system-ui, -apple-system, "PingFang SC", serif;
+  --font-body: "Noto Serif SC", system-ui, -apple-system, "PingFang SC", sans-serif;
 
   --title-size-v: 120px;
   --title-size-s: 92px;

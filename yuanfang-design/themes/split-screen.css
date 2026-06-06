@@ -7,8 +7,8 @@
   --secondary: #94A3B8;
   --bg-alt: #EEF2FF;
 
-  --font-title: "Inter", "PingFang SC", sans-serif;
-  --font-body: "Inter", "PingFang SC", sans-serif;
+  --font-title: system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;
+  --font-body:  system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;
 
   --title-size-v: 64px;
   --title-size-s: 56px;

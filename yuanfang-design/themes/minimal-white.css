@@ -9,8 +9,8 @@
   --bg-alt: #F8FAFC;
 
   /* Type */
-  --font-title: "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
-  --font-body:  "Outfit", "PingFang SC", -apple-system, system-ui, sans-serif;
+  --font-title: system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
+  --font-body:  system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
 
   /* Size */
   --title-size-v: 110px;
