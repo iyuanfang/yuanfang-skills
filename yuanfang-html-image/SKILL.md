@@ -12,7 +12,7 @@ description: |
 
 本 skill 依赖同仓库 `yuanfang-design/` 共享设计库：
 - `../yuanfang-design/base.css` — token CSS 变量
-- `../yuanfang-design/themes/*.css` — 12 个主题
+- `../yuanfang-design/themes/*.css` — 18 个主题
 - `../yuanfang-design/layout-types/cover.html` — 布局块
 
 如需独立部署，需复制整个 `yuanfang-skills/` 仓库。
@@ -127,7 +127,7 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 
 ### 第一轮 (必答)
 
-- **主题** — 从 12 个主题中选 1 个。向用户展示完整信息（底色、主色、视觉特征、适合场景），参考「完整主题库」表格。
+- **主题** — 从 18 个主题中选 1 个。向用户展示完整信息（底色、主色、视觉特征、适合场景），参考「完整主题库」表格。
   - **如果 Step 0 抓到品牌主色**, 推荐色调最接近的 2-3 个主题, 让用户挑
   - **没抓品牌色**, 默认推荐 `minimal-white` (干净白底, 通用百搭)
 - **平台** — 从 6+ 个尺寸中选 1-N 个 (允许多选)
@@ -179,9 +179,12 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 ```
 干货/教程 → minimal-white / data-infographic / list-ranking
 重磅消息 → dark-gold / bold-poster / magazine-cover
-深度分析 → editorial / eastern / magazine-cover
+深度分析 → editorial / eastern / magazine-cover / editorial-serif
 个人故事 → warm-handdrawn / minimal-white-editorial
-科技资讯 → tech-modern / split-screen / minimal-white-editorial
+科技资讯 → tech-modern / split-screen / minimal-white-editorial / tokyo-night
+路演融资 → pitch-deck-vc / dark-gold / corporate-clean
+企业 SaaS → corporate-clean / minimal-white
+轻量舒适 → catppuccin-latte / catppuccin-mocha
 ```
 
 ---
@@ -194,7 +197,7 @@ node scripts/extract.js --text "标题\n正文\n- 要点1\n- 要点2" > content.
 node scripts/render.js --theme <theme> --layout cover --platforms <ids>
 ```
 
-旧版 `--template 1-12` 仍兼容（映射到 12 个主题）。
+旧版 `--template 1-18` 仍兼容（映射到 18 个主题）。
 
 ---
 
@@ -250,7 +253,7 @@ Step 4: 预览确认 / 迭代优化
 按需查阅，不要预先加载：
 
 - **[references/cli.md](references/cli.md)** — render.js 完整 CLI 参数
-- **[references/themes-catalog.md](references/themes-catalog.md)** — 12 主题详细视觉特征
+- **[references/themes-catalog.md](references/themes-catalog.md)** — 18 主题详细视觉特征
 - **[references/platforms.md](references/platforms.md)** — 12 平台 ID + 尺寸
 - **[references/extract-api.md](references/extract-api.md)** — extract.js 内容提取 API
 - **[references/template-vars.md](references/template-vars.md)** — `{{TOKEN}}` 变量系统 + 设计原则
