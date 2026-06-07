@@ -1,5 +1,7 @@
 'use strict';
 
+const { addSlideFooter } = require('./slide-footer');
+
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
 function applyNotes(slide, text) {
@@ -67,6 +69,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   }
 
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
@@ -93,6 +96,7 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   });
 
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
@@ -125,6 +129,7 @@ function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   });
 
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 

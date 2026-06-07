@@ -45,7 +45,7 @@ test('renderContent adds bulleted title + body points', () => {
   renderContent(pres, slide, theme);
   const calls = pres._calls;
   assert.strictEqual(calls[0].type, 'slide');
-  const textCalls = calls.filter(c => c.type === 'text');
+  const textCalls = calls.filter(c => c.type === 'text' && c.opts.fontSize > 12);
   assert.strictEqual(textCalls.length, 2);
   assert.strictEqual(textCalls[0].text, 'Goals');
   assert.strictEqual(textCalls[0].opts.bold, true);

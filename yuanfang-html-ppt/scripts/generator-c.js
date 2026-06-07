@@ -1,5 +1,7 @@
 'use strict';
 
+const { addSlideFooter } = require('./slide-footer');
+
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
 function applyNotes(slide, text) {
@@ -93,6 +95,7 @@ function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
   });
   applyFeatureFlags(s, theme, dims);
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
@@ -150,6 +153,7 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
   }
   applyFeatureFlags(s, theme, dims);
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
@@ -198,6 +202,7 @@ function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
   });
   applyFeatureFlags(s, theme, dims);
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
@@ -221,6 +226,7 @@ function buildQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
   });
   applyFeatureFlags(s, theme, dims);
   applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
