@@ -1,1 +1,0 @@
-../../yuanfang-html-image/scripts/extract-brand.js

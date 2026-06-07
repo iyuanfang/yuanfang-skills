@@ -1,72 +1,122 @@
 'use strict';
 
-function renderCover(pres, slide, theme) {
+const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
+
+function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
+  const titleY = dims.h * 0.30;
+  const subtitleY = dims.h * 0.50;
+  const authorY = dims.h * 0.86;
+  const usableW = dims.w - theme.spacing * 2;
+
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 2.0, w: 13.333 - theme.spacing * 2, h: 1.5,
+    x: theme.spacing, y: titleY, w: usableW, h: 1.2,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.text, bold: true, align: 'center',
   });
+
   if (slide.subtitle) {
     s.addText(slide.subtitle, {
-      x: theme.spacing, y: 3.6, w: 13.333 - theme.spacing * 2, h: 0.6,
+      x: theme.spacing, y: subtitleY, w: usableW, h: 0.6,
       fontFace: theme.fontBody, fontSize: theme.sizeH2,
       color: theme.textSecondary, align: 'center',
     });
   }
+
   if (slide.author || slide.date) {
     const authorLine = [slide.author, slide.date].filter(Boolean).join(' · ');
     s.addText(authorLine, {
-      x: theme.spacing, y: 6.5, w: 13.333 - theme.spacing * 2, h: 0.4,
+      x: theme.spacing, y: authorY, w: usableW, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.textSecondary, align: 'center',
     });
   }
+
+  if (slide.logo) {
+    const logoSize = 0.55;
+    s.addImage({
+      path: slide.logo,
+      x: dims.w - theme.spacing - logoSize,
+      y: theme.spacing,
+      w: logoSize, h: logoSize,
+    });
+  }
+
+  if (theme.seal && theme.seal !== '""' && theme.seal !== 'none' && theme.seal !== '') {
+    const sealText = theme.seal.replace(/^["']|["']$/g, '');
+    if (sealText) {
+      const sealSize = 0.8;
+      s.addShape('ellipse', {
+        x: theme.spacing, y: theme.spacing, w: sealSize, h: sealSize,
+        fill: { color: theme.accent },
+        line: { color: theme.accent, width: 0 },
+      });
+      s.addText(sealText, {
+        x: theme.spacing, y: theme.spacing, w: sealSize, h: sealSize,
+        fontFace: theme.fontTitle, fontSize: 28, bold: true,
+        color: theme.bg, align: 'center', valign: 'middle',
+      });
+    }
+  }
+
   return s;
 }
 
-function renderContent(pres, slide, theme) {
+function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
+  const usableW = dims.w - theme.spacing * 2;
+  const titleY = theme.spacing;
+  const bodyY = dims.h * 0.22;
+  const bodyH = dims.h * 0.70;
+
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 0.4, w: 13.333 - theme.spacing * 2, h: 0.8,
+    x: theme.spacing, y: titleY, w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true, align: 'left',
   });
+
   const body = (slide.points || (slide.body ? [slide.body] : [])).join('\n');
   s.addText(body, {
-    x: theme.spacing, y: 1.5, w: 13.333 - theme.spacing * 2, h: 5.5,
+    x: theme.spacing, y: bodyY, w: usableW, h: bodyH,
     fontFace: theme.fontBody, fontSize: theme.sizeBase,
     color: theme.text, valign: 'top', paraSpaceAfter: 8,
     bullet: slide.points ? { code: '25CF' } : false,
   });
+
   return s;
 }
 
-function renderSummary(pres, slide, theme) {
+function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
+  const usableW = dims.w - theme.spacing * 2;
+  const closing = slide.closing || '谢谢 · Thank You';
+
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 0.4, w: 13.333 - theme.spacing * 2, h: 0.8,
+    x: theme.spacing, y: theme.spacing, w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true, align: 'left',
   });
+
   const body = (slide.points || []).join('\n');
   if (body) {
     s.addText(body, {
-      x: theme.spacing, y: 1.5, w: 13.333 - theme.spacing * 2, h: 4.0,
+      x: theme.spacing, y: dims.h * 0.22, w: usableW, h: dims.h * 0.50,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
       bullet: { code: '25CF' },
     });
   }
-  s.addText('谢谢 · Thank You', {
-    x: theme.spacing, y: 6.2, w: 13.333 - theme.spacing * 2, h: 0.6,
+
+  s.addText(closing, {
+    x: theme.spacing, y: dims.h * 0.80, w: usableW, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.accent, bold: true, align: 'center',
   });
+
   return s;
 }
 
-module.exports = { renderCover, renderContent, renderSummary };
+module.exports = { renderCover, renderContent, renderSummary, DEFAULT_DIMS };
