@@ -2,6 +2,12 @@
 
 const VALID_LAYOUTS = ['cover', 'section', 'content', 'two-column', 'data', 'quote', 'summary'];
 
+const REQUIRED_FIELDS = {
+  'data':       ['metrics'],
+  'two-column': ['leftPoints', 'rightPoints'],
+  'quote':      ['quote', 'attribution'],
+};
+
 function parseSlides(content) {
   if (!content || typeof content !== 'object') {
     throw new Error('content 必须是对象');
@@ -10,9 +16,8 @@ function parseSlides(content) {
   if (Array.isArray(content.slides) && content.slides.length > 0) {
     slides = content.slides;
   } else if (content.layout) {
-    // single-page shorthand: wrap top-level fields into a single slide
-    const { layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution } = content;
-    slides = [{ layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution }];
+    const { layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing } = content;
+    slides = [{ layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing }];
   } else {
     throw new Error('content 缺少 slides 数组或单页 layout');
   }
@@ -24,16 +29,29 @@ function parseSlides(content) {
     if (!s.title) {
       throw new Error(`slide #${i + 1}: 缺少 title 字段`);
     }
+    const required = REQUIRED_FIELDS[s.layout];
+    if (required) {
+      for (const field of required) {
+        const val = s[field];
+        const isEmpty = val === undefined || val === null ||
+          (Array.isArray(val) && val.length === 0) ||
+          (typeof val === 'string' && val.trim() === '');
+        if (isEmpty) {
+          throw new Error(`slide #${i + 1} (${s.layout}): 缺少必填字段 '${field}'`);
+        }
+      }
+    }
   }
   return {
     brand: content.brand,
     theme: content.theme,
     title: content.title || slides[0]?.title,
     author: content.author,
+    company: content.company,
     date: content.date,
     logo: content.logo,
     slides,
   };
 }
 
-module.exports = { parseSlides, VALID_LAYOUTS };
+module.exports = { parseSlides, VALID_LAYOUTS, REQUIRED_FIELDS };

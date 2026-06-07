@@ -35,3 +35,60 @@ test('multi-page content passes through slides array as-is', () => {
 test('throws when neither layout nor slides is provided', () => {
   assert.throws(() => parseSlides({ brand: 'x', theme: 'x' }), /缺少 slides 数组或单页 layout/);
 });
+
+test('data layout without metrics throws clear error', () => {
+  assert.throws(
+    () => parseSlides({ brand: 'x', theme: 'x', layout: 'data', title: 'T' }),
+    /缺少必填字段 'metrics'/
+  );
+});
+
+test('data layout with empty metrics array throws', () => {
+  assert.throws(
+    () => parseSlides({ brand: 'x', theme: 'x', layout: 'data', title: 'T', metrics: [] }),
+    /缺少必填字段 'metrics'/
+  );
+});
+
+test('two-column layout without leftPoints throws', () => {
+  assert.throws(
+    () => parseSlides({
+      brand: 'x', theme: 'x', layout: 'two-column', title: 'T',
+      leftTitle: 'A', rightPoints: ['x'],
+    }),
+    /缺少必填字段 'leftPoints'/
+  );
+});
+
+test('quote layout without attribution throws', () => {
+  assert.throws(
+    () => parseSlides({
+      brand: 'x', theme: 'x', layout: 'quote', title: 'T',
+      quote: 'hello',
+    }),
+    /缺少必填字段 'attribution'/
+  );
+});
+
+test('cover layout does not require additional fields beyond title', () => {
+  const result = parseSlides({
+    brand: 'x', theme: 'x', layout: 'cover', title: 'Hi',
+  });
+  assert.strictEqual(result.slides.length, 1);
+});
+
+test('content layout does not require points (body fallback allowed)', () => {
+  const result = parseSlides({
+    brand: 'x', theme: 'x', layout: 'content', title: 'Hi', body: 'text',
+  });
+  assert.strictEqual(result.slides.length, 1);
+});
+
+test('parseSlides exposes logo and company at top level', () => {
+  const result = parseSlides({
+    brand: 'x', theme: 'x', logo: '/tmp/logo.png', company: 'Acme',
+    layout: 'cover', title: 'Hi',
+  });
+  assert.strictEqual(result.logo, '/tmp/logo.png');
+  assert.strictEqual(result.company, 'Acme');
+});
