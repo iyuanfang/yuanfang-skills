@@ -7,6 +7,7 @@ const { loadTheme, listThemes } = require('./theme-mapper');
 const { applyBrandOverride } = require('./brand-override');
 const { renderCover, renderContent, renderSummary } = require('./generator-a');
 const { renderSection, renderTwoColumn, renderData, renderQuote } = require('./generator-c');
+const { renderChartBar, renderChartLine, renderChartPie } = require('./generator-charts');
 
 const VALID_PLATFORMS = {
   macos:      { w: 13.333, h: 7.5 },
@@ -139,6 +140,15 @@ async function render(opts) {
           break;
         case 'quote':
           await renderQuote(pres, slide, theme, dims);
+          break;
+        case 'chart-bar':
+          await renderChartBar(pres, slide, theme, dims);
+          break;
+        case 'chart-line':
+          await renderChartLine(pres, slide, theme, dims);
+          break;
+        case 'chart-pie':
+          await renderChartPie(pres, slide, theme, dims);
           break;
         default:
           console.warn(`⚠️ 跳过 slide: 未知 layout '${slide.layout}'`);

@@ -3,15 +3,15 @@
 function addSlideFooter(slide, theme, dims, opts = {}) {
   if (opts.showFooter === false) return;
 
-  const margin = 0.15;
-  const width = 1.2;
-  const height = 0.3;
-  const x = dims.w - margin - width;
-  const y = dims.h - margin - height;
+  const marginIn = 0.15;
+  const widthIn = 1.2;
+  const heightIn = 0.3;
+  const x = dims.w - marginIn - widthIn;
+  const y = dims.h - marginIn - heightIn;
 
   if (typeof slide.addText === 'function') {
     slide.addText(String(slide._slideNum || ''), {
-      x, y, w: width, h: height,
+      x, y, w: widthIn, h: heightIn,
       fontFace: theme.fontBody,
       fontSize: 9,
       color: theme.secondary,

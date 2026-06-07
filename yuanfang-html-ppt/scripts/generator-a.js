@@ -1,6 +1,7 @@
 'use strict';
 
 const { addSlideFooter } = require('./slide-footer');
+const { ptInch, usableWidth, leftEdge } = require('./units');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
@@ -16,17 +17,17 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   const titleY = dims.h * 0.30;
   const subtitleY = dims.h * 0.50;
   const authorY = dims.h * 0.86;
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
 
   s.addText(slide.title || '', {
-    x: theme.spacing, y: titleY, w: usableW, h: 1.2,
+    x: ptInch(theme.spacing), y: titleY, w: usableW, h: 1.2,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.text, bold: true, align: 'center',
   });
 
   if (slide.subtitle) {
     s.addText(slide.subtitle, {
-      x: theme.spacing, y: subtitleY, w: usableW, h: 0.6,
+      x: ptInch(theme.spacing), y: subtitleY, w: usableW, h: 0.6,
       fontFace: theme.fontBody, fontSize: theme.sizeH2,
       color: theme.textSecondary, align: 'center',
     });
@@ -35,7 +36,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   if (slide.author || slide.date) {
     const authorLine = [slide.author, slide.date].filter(Boolean).join(' · ');
     s.addText(authorLine, {
-      x: theme.spacing, y: authorY, w: usableW, h: 0.4,
+      x: ptInch(theme.spacing), y: authorY, w: usableW, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.textSecondary, align: 'center',
     });
@@ -46,7 +47,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
     s.addImage({
       path: slide.logo,
       x: dims.w - theme.spacing - logoSize,
-      y: theme.spacing,
+      y: ptInch(theme.spacing),
       w: logoSize, h: logoSize,
     });
   }
@@ -56,12 +57,12 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
     if (sealText) {
       const sealSize = 0.8;
       s.addShape('ellipse', {
-        x: theme.spacing, y: theme.spacing, w: sealSize, h: sealSize,
+        x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: sealSize, h: sealSize,
         fill: { color: theme.accent },
         line: { color: theme.accent, width: 0 },
       });
       s.addText(sealText, {
-        x: theme.spacing, y: theme.spacing, w: sealSize, h: sealSize,
+        x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: sealSize, h: sealSize,
         fontFace: theme.fontTitle, fontSize: 28, bold: true,
         color: theme.bg, align: 'center', valign: 'middle',
       });
@@ -76,20 +77,20 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
 function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   const titleY = theme.spacing;
   const bodyY = dims.h * 0.22;
   const bodyH = dims.h * 0.70;
 
   s.addText(slide.title || '', {
-    x: theme.spacing, y: titleY, w: usableW, h: 0.8,
+    x: ptInch(theme.spacing), y: titleY, w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true, align: 'left',
   });
 
   const body = (slide.points || (slide.body ? [slide.body] : [])).join('\n');
   s.addText(body, {
-    x: theme.spacing, y: bodyY, w: usableW, h: bodyH,
+    x: ptInch(theme.spacing), y: bodyY, w: usableW, h: bodyH,
     fontFace: theme.fontBody, fontSize: theme.sizeBase,
     color: theme.text, valign: 'top', paraSpaceAfter: 8,
     bullet: slide.points ? { code: '25CF' } : false,
@@ -103,11 +104,11 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
 function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   const closing = slide.closing || '谢谢 · Thank You';
 
   s.addText(slide.title || '', {
-    x: theme.spacing, y: theme.spacing, w: usableW, h: 0.8,
+    x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true, align: 'left',
   });
@@ -115,7 +116,7 @@ function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   const body = (slide.points || []).join('\n');
   if (body) {
     s.addText(body, {
-      x: theme.spacing, y: dims.h * 0.22, w: usableW, h: dims.h * 0.50,
+      x: ptInch(theme.spacing), y: dims.h * 0.22, w: usableW, h: dims.h * 0.50,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
       bullet: { code: '25CF' },
@@ -123,7 +124,7 @@ function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   }
 
   s.addText(closing, {
-    x: theme.spacing, y: dims.h * 0.80, w: usableW, h: 0.6,
+    x: ptInch(theme.spacing), y: dims.h * 0.80, w: usableW, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.accent, bold: true, align: 'center',
   });

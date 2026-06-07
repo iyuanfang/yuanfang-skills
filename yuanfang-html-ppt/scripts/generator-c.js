@@ -1,6 +1,7 @@
 'use strict';
 
 const { addSlideFooter } = require('./slide-footer');
+const { ptInch } = require('./units');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
@@ -78,14 +79,14 @@ function applyFeatureFlags(slide, theme, dims) {
 function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: dims.h * 0.32, w: usableW, h: 1.5,
+    x: ptInch(theme.spacing), y: dims.h * 0.32, w: usableW, h: 1.5,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.accent, bold: true, align: 'center', opacity: 0.5,
   });
   s.addText(slide.title || '', {
-    x: theme.spacing, y: dims.h * 0.50, w: usableW, h: 0.8,
+    x: ptInch(theme.spacing), y: dims.h * 0.50, w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.text, bold: true, align: 'center',
   });
@@ -102,51 +103,51 @@ function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
 function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: theme.spacing, w: usableW, h: 0.8,
+    x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true,
   });
-  const colW = (dims.w - theme.spacing * 3) / 2;
+  const colW = (dims.w - ptInch(theme.spacing) * 3) / 2;
   const colY = dims.h * 0.22;
   const colH = dims.h * 0.70;
   s.addShape('roundRect', {
-    x: theme.spacing, y: colY, w: colW, h: colH,
+    x: ptInch(theme.spacing), y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
     line: { color: theme.bgAlt, width: 0 },
     rectRadius: theme.rectRadius,
     shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.leftTitle || '', {
-    x: theme.spacing + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const leftBody = (slide.leftPoints || []).map(p => '• ' + p).join('\n');
   if (leftBody) {
     s.addText(leftBody, {
-      x: theme.spacing + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
     });
   }
   s.addShape('roundRect', {
-    x: theme.spacing * 2 + colW, y: colY, w: colW, h: colH,
+    x: ptInch(theme.spacing) * 2 + colW, y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
     line: { color: theme.bgAlt, width: 0 },
     rectRadius: theme.rectRadius,
     shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.rightTitle || '', {
-    x: theme.spacing * 2 + colW + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) * 2 + colW + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const rightBody = (slide.rightPoints || []).map(p => '• ' + p).join('\n');
   if (rightBody) {
     s.addText(rightBody, {
-      x: theme.spacing * 2 + colW + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) * 2 + colW + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
     });
@@ -160,22 +161,22 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
 function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
-  const usableW = dims.w - theme.spacing * 2;
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: theme.spacing, w: usableW, h: 0.8,
+    x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true,
   });
   const metrics = slide.metrics || [];
   if (metrics.length === 0) return s;
   const cols = Math.min(3, metrics.length);
-  const cardW = (dims.w - theme.spacing * (cols + 1)) / cols;
+  const cardW = (dims.w - ptInch(theme.spacing) * (cols + 1)) / cols;
   const cardH = dims.h * 0.32;
   const cardY = dims.h * 0.22;
   metrics.forEach((m, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = theme.spacing + col * (cardW + theme.spacing);
+    const x = ptInch(theme.spacing) + col * (cardW + theme.spacing);
     const y = cardY + row * (cardH + theme.spacing);
     s.addShape('roundRect', {
       x, y, w: cardW, h: cardH,
