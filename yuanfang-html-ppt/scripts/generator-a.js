@@ -2,6 +2,12 @@
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
+function applyNotes(slide, text) {
+  if (typeof text === 'string' && text.trim() !== '' && typeof slide.addNotes === 'function') {
+    slide.addNotes(text);
+  }
+}
+
 function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   s.background = { color: theme.bg };
@@ -60,6 +66,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
     }
   }
 
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -85,6 +92,7 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
     bullet: slide.points ? { code: '25CF' } : false,
   });
 
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -116,7 +124,8 @@ function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
     color: theme.accent, bold: true, align: 'center',
   });
 
+  applyNotes(s, slide.notes);
   return s;
 }
 
-module.exports = { renderCover, renderContent, renderSummary, DEFAULT_DIMS };
+module.exports = { renderCover, renderContent, renderSummary, DEFAULT_DIMS, applyNotes };

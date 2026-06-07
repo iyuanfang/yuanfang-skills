@@ -92,3 +92,24 @@ test('parseSlides exposes logo and company at top level', () => {
   assert.strictEqual(result.logo, '/tmp/logo.png');
   assert.strictEqual(result.company, 'Acme');
 });
+
+test('single-page shorthand preserves notes and background fields', () => {
+  const result = parseSlides({
+    brand: 'x', theme: 'x', layout: 'content', title: 'Hi',
+    notes: 'speaker script', background: '/tmp/bg.png',
+  });
+  assert.strictEqual(result.slides[0].notes, 'speaker script');
+  assert.strictEqual(result.slides[0].background, '/tmp/bg.png');
+});
+
+test('multi-page slides preserve notes field on each slide', () => {
+  const result = parseSlides({
+    brand: 'x', theme: 'x',
+    slides: [
+      { layout: 'cover', title: 'A', notes: 'note A' },
+      { layout: 'content', title: 'B', points: ['x'], notes: 'note B' },
+    ],
+  });
+  assert.strictEqual(result.slides[0].notes, 'note A');
+  assert.strictEqual(result.slides[1].notes, 'note B');
+});

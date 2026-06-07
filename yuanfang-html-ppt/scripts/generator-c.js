@@ -2,6 +2,12 @@
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
+function applyNotes(slide, text) {
+  if (typeof text === 'string' && text.trim() !== '' && typeof slide.addNotes === 'function') {
+    slide.addNotes(text);
+  }
+}
+
 function metricCardHtml(m) {
   const esc = (s) => String(s || '')
     .replace(/&/g, '&amp;')
@@ -86,6 +92,7 @@ function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
     line: { color: theme.accent, width: 4 },
   });
   applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -142,6 +149,7 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
     });
   }
   applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -189,6 +197,7 @@ function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
     });
   });
   applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -211,6 +220,7 @@ function buildQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
     color: theme.secondary, align: 'center',
   });
   applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
   return s;
 }
 
@@ -230,5 +240,5 @@ async function renderQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
 module.exports = {
   renderSection, renderTwoColumn, renderData, renderQuote,
   buildSection, buildTwoColumn, buildData, buildQuote,
-  applyFeatureFlags, metricCardHtml, DEFAULT_DIMS,
+  applyFeatureFlags, applyNotes, metricCardHtml, DEFAULT_DIMS,
 };

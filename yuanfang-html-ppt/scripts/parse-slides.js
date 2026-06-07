@@ -16,8 +16,8 @@ function parseSlides(content) {
   if (Array.isArray(content.slides) && content.slides.length > 0) {
     slides = content.slides;
   } else if (content.layout) {
-    const { layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing } = content;
-    slides = [{ layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing }];
+    const { layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing, notes, background } = content;
+    slides = [{ layout, title, body, subtitle, points, leftTitle, leftPoints, rightTitle, rightPoints, metrics, quote, attribution, closing, notes, background }];
   } else {
     throw new Error('content 缺少 slides 数组或单页 layout');
   }
