@@ -2,6 +2,7 @@
 
 const { addSlideFooter } = require('./slide-footer');
 const { ptInch, usableWidth, leftEdge } = require('./units');
+const { applyDecorCorners } = require('./decor');
 const { applyBackground } = require('./background');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
@@ -72,6 +73,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
 
   applyNotes(s, slide.notes);
   addSlideFooter(s, theme, dims, slide);
+  applyDecorCorners(s, theme, dims);
   return s;
 }
 
