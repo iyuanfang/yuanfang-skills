@@ -49,7 +49,7 @@
   --grad-soft: linear-gradient(135deg, #EEF2FF, #F5ECFF 55%, #FFEEF5);
 
   /* === Type hierarchy === */
-  --font-sans: system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
+  --font-sans: "Arial", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
   --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
   --font-display: var(--font-sans);

@@ -37,29 +37,22 @@ function coverLayout(slide) {
     : '';
   return `
     <div class="deck-header">
-      <span class="eyebrow">${escHtml(slide.brand || 'Keynote')} · 2026</span>
-      <span class="eyebrow">html-ppt × dom-to-pptx</span>
+      <span class="eyebrow" style="display:inline-block;min-width:400px">${escHtml(slide.brand || 'Keynote')} · 2026</span>
+      ${slide.logo ? `<img src="${slide.logo}" style="height:44px;width:auto"/>` : `<span class="eyebrow">html-ppt × dom-to-pptx</span>`}
     </div>
     <div style="max-width:100%">
       ${slide.kicker ? `<p class="kicker">${escHtml(slide.kicker)}</p>` : ''}
       <h1 class="h1">${title || 'Title'}</h1>
       ${subtitle ? `<p class="lede">${escHtml(subtitle)}</p>` : ''}
       ${tagsHtml}
-    </div>
-    <div class="deck-footer">
-      <span class="dim2">${escHtml(slide.author || 'Author')} · ${slide.date || ''}</span>
-      <span class="dim2"></span>
     </div>`;
 }
 
 function sectionLayout(slide) {
-  // Use huge section number as background watermark (auto-derived from title)
-  const num = (slide.sectionNumber || '').padStart(2, '0');
   return `
-    ${num ? `<div class="section-num">${num}</div>` : ''}
-    <div class="section-content" style="max-width:1400px;margin:0 auto;text-align:center">
+    <div style="text-align:center">
       ${slide.kicker ? `<p class="kicker">${escHtml(slide.kicker)}</p>` : ''}
-      <h1 class="h1" style="font-size:96px">${slide.title || ''}</h1>
+      <h1 class="h1" style="font-size:96px;display:inline-block;min-width:600px">${slide.title || ''}</h1>
       <div class="divider-accent" style="margin:28px auto"></div>
       ${slide.subtitle ? `<p class="lede" style="margin:0 auto;max-width:1000px">${escHtml(slide.subtitle)}</p>` : ''}
     </div>
@@ -144,11 +137,11 @@ function summaryLayout(slide) {
   return `
     <p class="kicker">Next · 下一步</p>
     <h2 class="h2" style="margin-bottom:32px">${escHtml(title)}</h2>
-    <div class="grid g1" style="gap:20px;max-width:900px">
+    <div class="grid g1" style="gap:20px;max-width:1100px">
       ${(points||[]).map(p => `
-        <div class="row" style="gap:20px">
-          <div style="width:14px;height:14px;border-radius:50%;background:var(--accent)"></div>
-          <span style="font-size:38px;font-weight:500">${escHtml(p)}</span>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center">
+          <div style="width:16px;height:16px;border-radius:50%;background:var(--accent)"></div>
+          <div style="font-size:36px;font-weight:500;line-height:1.3">${escHtml(p)}</div>
         </div>`).join('')}
     </div>`;
 }
@@ -161,7 +154,7 @@ function tocLayout(slide) {
     return `<div class="card">
       <div class="row" style="gap:24px;align-items:flex-start">
         <div class="h3" style="color:var(--text-3);width:64px;flex-shrink:0">${num}</div>
-        <div>
+        <div style="flex:1;min-width:0">
           <h4 style="margin:0 0 8px;font-size:28px;font-weight:700">${escHtml(item.title || '')}</h4>
           ${item.desc ? `<p class="dim" style="font-size:20px;line-height:1.4;margin:0">${escHtml(item.desc)}</p>` : ''}
         </div>
@@ -273,12 +266,14 @@ function comparisonLayout(slide) {
   return `
     ${slide.kicker ? `<p class="kicker">${escHtml(slide.kicker)}</p>` : ''}
     <h2 class="h2">${slide.title || 'Comparison'}</h2>
-    <div class="comparison-header" style="margin-top:24px;margin-bottom:16px">
-      <div style="font-size:24px;font-weight:700;color:${leftColor || 'var(--bad)'}">${escHtml(leftLabel || 'Before')}</div>
-      <div></div>
-      <div style="font-size:24px;font-weight:700;color:${rightColor || 'var(--good)'}">${escHtml(rightLabel || 'After')}</div>
-    </div>
-    <div class="comparison-list">${list}</div>`;
+    <div style="max-width:1400px;margin:0 auto;width:100%">
+      <div class="comparison-header" style="margin-top:24px;margin-bottom:16px">
+        <div style="font-size:24px;font-weight:700;color:${leftColor || 'var(--bad)'};padding-left:46px">${escHtml(leftLabel || 'Before')}</div>
+        <div></div>
+        <div style="font-size:24px;font-weight:700;color:${rightColor || 'var(--good)'};padding-left:46px">${escHtml(rightLabel || 'After')}</div>
+      </div>
+      <div class="comparison-list">${list}</div>
+    </div>`;
 }
 
 // ── HTML generators map ──────────────────────────────────────────────
@@ -304,7 +299,7 @@ const LAYOUTS = {
   'kpi-grid':   dataLayout,
   'section-divider': sectionLayout,
   thanks:      (s) => ` <div style="text-align:center;padding:40px 0">
-    <h1 class="h1" style="font-size:180px;line-height:1"><span class="gradient-text">Thanks</span></h1>
+    <h1 class="h1" style="font-size:120px;line-height:1"><span class="gradient-text" style="display:inline-block;min-width:400px">Thanks</span></h1>
     ${s.subtitle ? `<p class="lede" style="margin:24px auto 0">${escHtml(s.subtitle)}</p>` : ''}
     <div class="row mt-l" style="justify-content:center;gap:40px">
       ${(s.points||[]).map(p => `<span class="dim2" style="font-size:36px">${escHtml(p)}</span>`).join('')}
@@ -334,14 +329,21 @@ function buildHtml(slides, theme, themeCss) {
     const notesHtml = slide.notes
       ? `<aside class="notes" data-notes="${escHtml(slide.notes)}" style="display:none">${escHtml(slide.notes)}</aside>`
       : '';
+    const footerLabel = slide.footer || '';
     return `<section class="slide${extraClass}${variantClass}" data-title="${escHtml(slide.title || '')}" data-index="${i}">
   ${inner}
+  <div class="deck-footer">
+    <span class="dim2">${escHtml(footerLabel)}</span>
+    <span class="dim2">${i + 1} / ${slides.length}</span>
+  </div>
   ${notesHtml}
 </section>`;
   }).join('\n\n');
 
   // html-ppt-skill base styles (subset needed for dom-to-pptx, no runtime.js)
   const baseStyles = `
+@font-face{font-family:"Arial";src:local("Liberation Sans"),local("DejaVu Sans")}
+@font-face{font-family:"PingFang SC";src:local("Liberation Sans"),local("DejaVu Sans")}
 :root {
   --space-1:8px;--space-2:16px;--space-3:24px;--space-4:48px;
   --letter-tight:-.03em;--letter-normal:-.01em;
@@ -396,7 +398,7 @@ html,body{width:100%;background:#1a1a1a;font-family:var(--font-sans)}
 .g2{grid-template-columns:repeat(2,1fr)}
 .g3{grid-template-columns:repeat(3,1fr)}
 .g4{grid-template-columns:repeat(4,1fr)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.card{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:32px 28px;box-shadow:var(--shadow);position:relative;overflow:hidden}
 /* Layout variants — Marp-style class metadata, e.g. slide.class="compact" */
 .content-compact .card{padding:20px 22px}
 .content-compact .grid.g1{gap:10px}
@@ -408,10 +410,10 @@ html,body{width:100%;background:#1a1a1a;font-family:var(--font-sans)}
 .cover-minimal .h1{margin-bottom:0}
 .thanks-contact .row{flex-direction:column;gap:12px}
 .card-line{position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent)}
-.pill{display:inline-block;padding:6px 16px;border-radius:999px;font-size:28px;font-weight:500;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.pill{display:inline-block;padding:6px 20px;border-radius:999px;font-size:26px;font-weight:500;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border);white-space:nowrap}
 /* Process steps — circular number badge, lifted card */
 .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:40px}
-.step{position:relative;padding:36px 26px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
+.step{position:relative;padding:36px 26px 24px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow)}
 .step .num{position:absolute;top:-26px;left:22px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;box-shadow:var(--shadow)}
 .step h4{margin:0 0 8px}
 .step p{font-size:18px;color:var(--text-2);line-height:1.5}
@@ -423,11 +425,9 @@ html,body{width:100%;background:#1a1a1a;font-family:var(--font-sans)}
 .tl-year{font-size:18px;color:var(--text-3);letter-spacing:.12em;text-transform:uppercase;font-weight:600;position:absolute;top:-32px;left:0;right:0}
 .tl-dot{position:absolute;top:36px;left:50%;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;background:var(--accent);border:4px solid var(--bg);box-shadow:0 0 0 2px var(--accent);z-index:1}
 /* Cover decoration — gradient bg + soft gradient blob (top-right) */
-/* Section divider decoration — huge number as background watermark */
-.section-num{position:absolute;right:60px;bottom:0;font-size:340px;font-weight:900;line-height:.85;color:var(--surface-2);z-index:0;letter-spacing:-.05em;pointer-events:none}
-.section-content{position:relative;z-index:1}
+
 /* Stat highlight — single huge gradient number */
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;align-items:end;justify-content:center;margin-top:24px;flex:1}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:48px;margin-top:40px}
 .stat-item{text-align:center;display:flex;flex-direction:column;gap:14px}
 .stat-num{font-size:180px;font-weight:900;line-height:.95;letter-spacing:-.05em}
 .stat-label{font-size:24px;font-weight:700;letter-spacing:.02em}
@@ -519,6 +519,43 @@ function loadThemeCss(themeName) {
   return base + '\n' + css;
 }
 
+function adjustColor(hex, amount) {
+  hex = hex.replace('#','');
+  const r = Math.max(0, Math.min(255, parseInt(hex.substring(0,2),16) + amount));
+  const g = Math.max(0, Math.min(255, parseInt(hex.substring(2,4),16) + amount));
+  const b = Math.max(0, Math.min(255, parseInt(hex.substring(4,6),16) + amount));
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+}
+
+function fixPptxFonts(buf) {
+  const { execSync } = require('child_process');
+  const tmpDir = path.join(require('os').tmpdir(), 'pptx-fontfix-' + Date.now());
+  const inPath = path.join(tmpDir, 'in.pptx');
+  const scriptPath = path.join(tmpDir, 'fixfonts.py');
+  fs.mkdirSync(tmpDir, { recursive: true });
+  fs.writeFileSync(inPath, buf);
+  fs.writeFileSync(scriptPath, `
+import zipfile, os, re
+inpath = "${inPath.replace(/"/g, '\\"')}"
+outpath = inpath.replace('.pptx', '-fixed.pptx')
+with zipfile.ZipFile(inpath, 'r') as zin:
+    with zipfile.ZipFile(outpath, 'w', zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename.endswith('.xml'):
+                text = data.decode('utf-8', errors='replace')
+                if 'typeface=\"Inter\"' in text:
+                    text = text.replace('typeface=\"Inter\"', 'typeface=\"Microsoft YaHei\"')
+                data = text.encode('utf-8')
+            zout.writestr(item, data)
+print(outpath)
+`);
+  const outPath = execSync(`python3 "${scriptPath}"`, { stdio: 'pipe' }).toString().trim();
+  const result = fs.readFileSync(outPath);
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+  return result;
+}
+
 // ── Main ─────────────────────────────────────────────────────────────
 
 async function main() {
@@ -529,7 +566,7 @@ async function main() {
     args[key] = process.argv[i + 1];
   }
 
-  const contentPath = args.file || path.join(ROOT, 'yuanfang-html-ppt', 'tests', 'fixtures', 'content-multipage.json');
+  const contentPath = args.file || path.join(ROOT, 'yuanfang-html-ppt', 'tests', 'fixtures', 'content-multipage.yaml');
   const themeName = args.theme || 'pitch-deck-vc';
   const outputPath = args.output || '/tmp/poc-deck.pptx';
   const format = (args.format || 'pptx').toLowerCase();
@@ -545,7 +582,19 @@ async function main() {
   console.log(`📦 Format: ${format}`);
 
   // 2. Load theme CSS
-  const themeCss = loadThemeCss(themeName);
+  let themeCss = loadThemeCss(themeName);
+
+  // 2a. Brand color override
+  if (args['brand-color']) {
+    const color = args['brand-color'];
+    const darker = adjustColor(color, -20);
+    themeCss += `\n:root{--accent:${color};--accent-dark:${darker};--grad:linear-gradient(135deg,${color},#7C3AED)}`;
+    console.log(`🎨 Brand color: ${color}`);
+    // Propagate to cover slide for brand tag
+    if (slides.length > 0 && !slides[0].brand) {
+      slides[0].brand = 'Brand';
+    }
+  }
 
   // 3. Generate HTML
   const html = buildHtml(slides, themeName, themeCss);
@@ -638,7 +687,8 @@ async function renderPptx(htmlPath, outputPath, slides, _themeName) {
       notesBySlide[String(i + 1)] = String(slide.notes);
     }
   });
-  const finalBuffer = await injectNotes(Buffer.from(uint8), notesBySlide);
+  let finalBuffer = await injectNotes(Buffer.from(uint8), notesBySlide);
+  finalBuffer = fixPptxFonts(finalBuffer);
 
   // Save
   fs.writeFileSync(outputPath, finalBuffer);
