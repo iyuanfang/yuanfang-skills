@@ -11,7 +11,7 @@ const baseTheme = {
   accent: '#4f46e5', secondary: '#64748b', bgAlt: '#f5f5f5',
   fontBody: 'system-ui', fontTitle: 'Georgia, serif',
   sizeH1: 60, sizeH2: 28, sizeBase: 18, sizeSm: 12, sizeH3: 20,
-  spacing: 12, rectRadius: 8, shadow: 'none',
+  spacing: 12, space1: 6, space3: 18, rectRadius: 8, shadow: 'none',
   accentLine: 'none', accentBlock: 'none', terminalBar: 'none',
 };
 
@@ -29,6 +29,43 @@ function makeMockPres() {
     _slide: slide,
   };
 }
+
+test('buildTwoColumn uses theme.space3 for inter-column gap (not hardcoded 0.3in)', () => {
+  const pres = makeMockPres();
+  buildTwoColumn(pres, {
+    title: '对比', leftTitle: '我们', leftPoints: ['a'],
+    rightTitle: '竞品', rightPoints: ['b'],
+  }, baseTheme, DEFAULT_DIMS);
+  const rects = pres._calls.filter(c => c.type === 'shape' && c.shape === 'roundRect');
+  assert.strictEqual(rects.length, 2);
+  // Left card right edge + gap = right card left edge
+  const leftRightEdge = rects[0].opts.x + rects[0].opts.w;
+  const gap = rects[1].opts.x - leftRightEdge;
+  assert.ok(gap > 0, `col gap should be positive, got ${gap}`);
+  const textOpts = pres._calls.filter(c => c.type === 'text' && c.text === '我们').map(c => c.opts);
+  assert.ok(textOpts[0].x > rects[0].opts.x, 'title should be indented inside card');
+});
+
+test('buildData uses theme.space3 for inter-card gap', () => {
+  const pres = makeMockPres();
+  buildData(pres, {
+    title: '指标',
+    metrics: [
+      { label: 'MAU', value: '120 万', change: '+15%' },
+      { label: '营收', value: '¥580 万', change: '+22%' },
+      { label: '用户', value: '50 万', change: '+8%' },
+    ],
+  }, baseTheme, DEFAULT_DIMS);
+  const rects = pres._calls.filter(c => c.type === 'shape' && c.shape === 'roundRect');
+  assert.strictEqual(rects.length, 3);
+  // Cards should not overlap
+  for (let i = 1; i < rects.length; i++) {
+    assert.ok(rects[i].opts.x >= rects[i - 1].opts.x + rects[i - 1].opts.w,
+      `card ${i} overlaps card ${i - 1}`);
+  }
+  const textCalls = pres._calls.filter(c => c.type === 'text' && c.text === '120 万');
+  assert.ok(textCalls[0].opts.x > rects[0].opts.x, 'value should be padded inside card');
+});
 
 test('buildSection emits title twice (accent watermark + main) and accent line', () => {
   const pres = makeMockPres();

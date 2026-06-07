@@ -7,7 +7,7 @@ const theme = {
   accent: '#4f46e5', secondary: '#a855f7', bgAlt: '#f5f5f5',
   fontBody: 'system-ui', fontTitle: 'Georgia, serif',
   sizeH1: 44, sizeH2: 28, sizeBase: 18, sizeSm: 12, sizeH3: 22,
-  spacing: 6, rectRadius: 6,
+  spacing: 6, space1: 6, space3: 18, rectRadius: 6,
 };
 
 function makeMockPres() {
@@ -25,6 +25,19 @@ function makeMockPres() {
   };
   return pres;
 }
+
+test('renderContent uses theme.space1 for paraSpaceAfter (not hardcoded 8)', () => {
+  const pres = makeMockPres();
+  const slide = { title: 'X', points: ['A', 'B'] };
+  renderContent(pres, slide, theme);
+  const bodyCall = pres._calls.filter(c => c.type === 'text' && c.text === 'A\nB');
+  assert.strictEqual(bodyCall.length, 1);
+  assert.strictEqual(bodyCall[0].opts.paraSpaceAfter, theme.space1);
+  // Also verify title y is within slide bounds (was off-screen before bugfix)
+  const titleCall = pres._calls.filter(c => c.type === 'text' && c.text === 'X');
+  assert.strictEqual(titleCall.length, 1);
+  assert.ok(titleCall[0].opts.y < 1, `title y should be near top, got ${titleCall[0].opts.y}`);
+});
 
 test('renderCover sets background and adds title/subtitle/author text', () => {
   const pres = makeMockPres();

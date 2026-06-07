@@ -110,9 +110,11 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true,
   });
-  const colW = (dims.w - ptInch(theme.spacing) * 3) / 2;
+  const colGap = ptInch(theme.space3);
+  const colW = (dims.w - ptInch(theme.spacing) * 2 - colGap) / 2;
   const colY = dims.h * 0.22;
   const colH = dims.h * 0.70;
+  const cardPad = ptInch(theme.space3);
   s.addShape('roundRect', {
     x: ptInch(theme.spacing), y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
@@ -121,34 +123,34 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
     shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.leftTitle || '', {
-    x: ptInch(theme.spacing) + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) + cardPad, y: colY + cardPad, w: colW - cardPad * 2, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const leftBody = (slide.leftPoints || []).map(p => '• ' + p).join('\n');
   if (leftBody) {
     s.addText(leftBody, {
-      x: ptInch(theme.spacing) + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) + cardPad, y: colY + 1.1, w: colW - cardPad * 2, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
-      color: theme.text, valign: 'top', paraSpaceAfter: 8,
+      color: theme.text, valign: 'top', paraSpaceAfter: theme.space1,
     });
   }
   s.addShape('roundRect', {
-    x: ptInch(theme.spacing) * 2 + colW, y: colY, w: colW, h: colH,
+    x: ptInch(theme.spacing) + colW + colGap, y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
     line: { color: theme.bgAlt, width: 0 },
     rectRadius: theme.rectRadius,
     shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.rightTitle || '', {
-    x: ptInch(theme.spacing) * 2 + colW + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) + colW + colGap + cardPad, y: colY + cardPad, w: colW - cardPad * 2, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const rightBody = (slide.rightPoints || []).map(p => '• ' + p).join('\n');
   if (rightBody) {
     s.addText(rightBody, {
-      x: ptInch(theme.spacing) * 2 + colW + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) + colW + colGap + cardPad, y: colY + 1.1, w: colW - cardPad * 2, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
     });
@@ -171,14 +173,16 @@ function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
   const metrics = slide.metrics || [];
   if (metrics.length === 0) return s;
   const cols = Math.min(3, metrics.length);
-  const cardW = (dims.w - ptInch(theme.spacing) * (cols + 1)) / cols;
+  const interCardGap = ptInch(theme.space3);
+  const cardW = (dims.w - ptInch(theme.spacing) * 2 - interCardGap * (cols - 1)) / cols;
   const cardH = dims.h * 0.32;
   const cardY = dims.h * 0.22;
+  const cardPad = ptInch(theme.space1);
   metrics.forEach((m, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = ptInch(theme.spacing) + col * (cardW + theme.spacing);
-    const y = cardY + row * (cardH + theme.spacing);
+    const x = ptInch(theme.spacing) + col * (cardW + interCardGap);
+    const y = cardY + row * (cardH + ptInch(theme.spacing));
     s.addShape('roundRect', {
       x, y, w: cardW, h: cardH,
       fill: { color: theme.bgAlt },
@@ -187,17 +191,17 @@ function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
       shadow: cssShadowToProps(theme.shadow) || undefined,
     });
     s.addText(m.label || '', {
-      x: x + 0.2, y: y + 0.2, w: cardW - 0.4, h: 0.4,
+      x: x + cardPad, y: y + cardPad, w: cardW - cardPad * 2, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.secondary, align: 'center',
     });
     s.addText(m.value || '', {
-      x: x + 0.2, y: y + 0.6, w: cardW - 0.4, h: cardH * 0.45,
+      x: x + cardPad, y: y + 0.6, w: cardW - cardPad * 2, h: cardH * 0.45,
       fontFace: theme.fontTitle, fontSize: theme.sizeH1,
       color: theme.text, bold: true, align: 'center',
     });
     s.addText(m.change || '', {
-      x: x + 0.2, y: y + cardH - 0.55, w: cardW - 0.4, h: 0.4,
+      x: x + cardPad, y: y + cardH - 0.55, w: cardW - cardPad * 2, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.accent, bold: true, align: 'center',
     });

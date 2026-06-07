@@ -81,7 +81,7 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
   if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
-  const titleY = theme.spacing;
+  const titleY = ptInch(theme.spacing);
   const bodyY = dims.h * 0.22;
   const bodyH = dims.h * 0.70;
 
@@ -95,7 +95,7 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   s.addText(body, {
     x: ptInch(theme.spacing), y: bodyY, w: usableW, h: bodyH,
     fontFace: theme.fontBody, fontSize: theme.sizeBase,
-    color: theme.text, valign: 'top', paraSpaceAfter: 8,
+      color: theme.text, valign: 'top', paraSpaceAfter: theme.space1,
     bullet: slide.points ? { code: '25CF' } : false,
   });
 
@@ -121,7 +121,7 @@ function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
     s.addText(body, {
       x: ptInch(theme.spacing), y: dims.h * 0.22, w: usableW, h: dims.h * 0.50,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
-      color: theme.text, valign: 'top', paraSpaceAfter: 8,
+      color: theme.text, valign: 'top', paraSpaceAfter: theme.space1,
       bullet: { code: '25CF' },
     });
   }
