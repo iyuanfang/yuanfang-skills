@@ -6,6 +6,14 @@
   --accent: #10B981;
   --secondary: #64748B;
   --bg-alt: #FFFFFF;
+  /* Surface hierarchy (required by yuanfang-design tokens) */
+  --surface: #FFFFFF;
+  --surface-2: var(--bg-alt);
+  --border: rgba(0,0,0,.08);
+  --border-strong: rgba(0,0,0,.18);
+  --text-1: var(--text);
+  --text-2: var(--secondary);
+  --text-3: rgba(0,0,0,.5);
 
   --font-title: system-ui, -apple-system, "PingFang SC", "Outfit", "Inter", sans-serif;
   --font-body:  system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;

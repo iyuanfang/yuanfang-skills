@@ -2,10 +2,18 @@
 
 [data-theme="dark-gold"] {
   --bg: #1A1A2E;
-  --text: #F5E6D3;
+  --bg-soft: #16213E;
+  --surface: #2A2A4E;
+  --surface-2: #16213E;
+  --border: rgba(245,230,211,.10);
+  --border-strong: rgba(245,230,211,.20);
+  --text-1: #F5E6D3;
+  --text-2: #C9B894;
+  --text-3: #8A7E63;
+  --text: var(--text-1);
   --accent: #E2B714;
-  --secondary: #B8941F;
-  --bg-alt: #16213E;
+  --secondary: var(--text-2);
+  --bg-alt: var(--bg-soft);
 
   --font-title: "Playfair Display", system-ui, -apple-system, "PingFang SC", serif;
   --font-body:  system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;

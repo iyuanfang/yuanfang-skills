@@ -2,10 +2,18 @@
 
 [data-theme="tech-modern"] {
   --bg: #0F172A;
-  --text: #E2E8F0;
+  --bg-soft: #1E293B;
+  --surface: #1E293B;
+  --surface-2: #16213E;
+  --border: rgba(226,232,240,.10);
+  --border-strong: rgba(226,232,240,.20);
+  --text-1: #E2E8F0;
+  --text-2: #94A3B8;
+  --text-3: #64748B;
+  --text: var(--text-1);
   --accent: #4FACFE;
-  --secondary: #64748B;
-  --bg-alt: #1E293B;
+  --secondary: var(--text-2);
+  --bg-alt: var(--bg-soft);
 
   --font-title: "JetBrains Mono", "Inter", system-ui, -apple-system, "PingFang SC", monospace;
   --font-body:  system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;
