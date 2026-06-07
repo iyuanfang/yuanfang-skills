@@ -5,6 +5,7 @@ const PptxGenJS = require('pptxgenjs');
 const { parseSlides } = require('./parse-slides');
 const { loadTheme, listThemes } = require('./theme-mapper');
 const { applyBrandOverride } = require('./brand-override');
+const { applyThemeOverride } = require('./theme-override');
 const { renderCover, renderContent, renderSummary } = require('./generator-a');
 const { renderSection, renderTwoColumn, renderData, renderQuote } = require('./generator-c');
 const { renderChartBar, renderChartLine, renderChartPie } = require('./generator-charts');
@@ -118,37 +119,38 @@ async function render(opts) {
   pres.company = content.company || content.author || '';
 
   for (const slide of slides) {
+    const slideTheme = applyThemeOverride(theme, slide);
     try {
       switch (slide.layout) {
         case 'cover':
-          renderCover(pres, slide, theme, dims);
+          renderCover(pres, slide, slideTheme, dims);
           break;
         case 'content':
-          renderContent(pres, slide, theme, dims);
+          renderContent(pres, slide, slideTheme, dims);
           break;
         case 'summary':
-          renderSummary(pres, slide, theme, dims);
+          renderSummary(pres, slide, slideTheme, dims);
           break;
         case 'section':
-          await renderSection(pres, slide, theme, dims);
+          await renderSection(pres, slide, slideTheme, dims);
           break;
         case 'two-column':
-          await renderTwoColumn(pres, slide, theme, dims);
+          await renderTwoColumn(pres, slide, slideTheme, dims);
           break;
         case 'data':
-          await renderData(pres, slide, theme, dims);
+          await renderData(pres, slide, slideTheme, dims);
           break;
         case 'quote':
-          await renderQuote(pres, slide, theme, dims);
+          await renderQuote(pres, slide, slideTheme, dims);
           break;
         case 'chart-bar':
-          await renderChartBar(pres, slide, theme, dims);
+          await renderChartBar(pres, slide, slideTheme, dims);
           break;
         case 'chart-line':
-          await renderChartLine(pres, slide, theme, dims);
+          await renderChartLine(pres, slide, slideTheme, dims);
           break;
         case 'chart-pie':
-          await renderChartPie(pres, slide, theme, dims);
+          await renderChartPie(pres, slide, slideTheme, dims);
           break;
         default:
           console.warn(`⚠️ 跳过 slide: 未知 layout '${slide.layout}'`);
