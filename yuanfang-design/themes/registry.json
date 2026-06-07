@@ -240,6 +240,126 @@
           "--accent": "#4F46E5"
         }
       }
+    },
+    {
+      "name": "theme-pitch-deck-vc",
+      "type": "registry:theme",
+      "title": "Pitch Deck VC",
+      "description": "YC-style venture pitch. Blue→purple gradient, clean white, VC-ready. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/pitch-deck-vc.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/pitch-deck-vc.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#FFFFFF",
+          "--text": "#0B0D12",
+          "--accent": "#0070F3"
+        }
+      }
+    },
+    {
+      "name": "theme-corporate-clean",
+      "type": "registry:theme",
+      "title": "Corporate Clean",
+      "description": "Professional blue, polished, enterprise-ready. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/corporate-clean.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/corporate-clean.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#FFFFFF",
+          "--text": "#0F172A",
+          "--accent": "#2563EB"
+        }
+      }
+    },
+    {
+      "name": "theme-tokyo-night",
+      "type": "registry:theme",
+      "title": "Tokyo Night",
+      "description": "Dark, neon, developer-friendly. Blue→purple on dark navy. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/tokyo-night.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/tokyo-night.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#1A1B26",
+          "--text": "#C0CAF5",
+          "--accent": "#7AA2F7"
+        }
+      }
+    },
+    {
+      "name": "theme-editorial-serif",
+      "type": "registry:theme",
+      "title": "Editorial Serif",
+      "description": "Warm, serif, editorial. Playfair Display headlines, rich typography. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/editorial-serif.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/editorial-serif.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#FAF8F5",
+          "--text": "#1A1410",
+          "--accent": "#C0392B"
+        }
+      }
+    },
+    {
+      "name": "theme-catppuccin-latte",
+      "type": "registry:theme",
+      "title": "Catppuccin Latte",
+      "description": "Warm, cozy, light. Pink→purple→orange gradient. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/catppuccin-latte.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/catppuccin-latte.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#EFF1F5",
+          "--text": "#4C4F69",
+          "--accent": "#DD7878"
+        }
+      }
+    },
+    {
+      "name": "theme-catppuccin-mocha",
+      "type": "registry:theme",
+      "title": "Catppuccin Mocha",
+      "description": "Dark, rich, cozy. Pink→purple→red on dark. From html-ppt-skill (MIT).",
+      "files": [
+        {
+          "path": "yuanfang-design/themes/catppuccin-mocha.css",
+          "type": "registry:file",
+          "target": "yuanfang-design/themes/catppuccin-mocha.css"
+        }
+      ],
+      "cssVars": {
+        "light": {
+          "--bg": "#1E1E2E",
+          "--text": "#CDD6F4",
+          "--accent": "#F5C2E7"
+        }
+      }
     }
   ]
 }

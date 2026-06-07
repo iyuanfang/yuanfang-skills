@@ -60,8 +60,16 @@ node yuanfang-html-image/scripts/render.js \
 ```bash
 node yuanfang-html-ppt/scripts/render.js \
   --file yuanfang-html-ppt/tests/fixtures/content-content.json \
-  --theme minimal-white --brand minimal-white --skip-confirm \
+  --skip-confirm \
   --output /tmp/test.pptx
+```
+
+PPT 渲染会使用 content.json 里的 `theme` 和 `brand` 字段, 也可通过 CLI flag 覆盖:
+```bash
+node yuanfang-html-ppt/scripts/render.js \
+  --file content.json --theme dark-gold \
+  --brand-spec ./brand-spec.json \
+  --skip-confirm --output deck.pptx
 ```
 
 ### 更新
@@ -81,7 +89,10 @@ yuanfang-skills/                    ← 整个仓库 clone 到 ~/.opencode/repos
 │   └── themes/*.css
 ├── yuanfang-html-image/            ← 消费者 skill：生成社交媒体配图
 │   └── scripts/render.js → 依赖 → ../../yuanfang-design/
-└── yuanfang-html-ppt/              ← PPTX 生成 (PptxGenJS, 7 布局, A+C 混合)
+└── yuanfang-html-ppt/              ← PPTX 生成 (PptxGenJS, 7 布局, 12 主题, 品牌色 override)
+    ├── SKILL.md
+    ├── scripts/                  (render, parse-slides, theme-mapper, generators, brand-override)
+    └── tests/                    (unit + integration + fixtures + visual-baselines/)
 ```
 
 所有 skill 共享同一个 `yuanfang-design/` 设计系统。`render.js` 通过 `__dirname` 的 `../../` 定位到仓库根目录，再找 `yuanfang-design/`——symlink 指向真实路径，所以始终能正确解析。

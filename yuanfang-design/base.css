@@ -1,21 +1,66 @@
 /* yuanfang-design/base.css
- * Token defaults for all themes. Themes override these via [data-theme="..."] selectors.
- * No literal colors, sizes, or decorations allowed in the .cover rules below.
+ * Token defaults for all themes.
+ *
+ * INHERITED FROM: lewislulu/html-ppt-skill (MIT) — hierarchical token structure,
+ *   card/grid/pill layout primitives. See references/upstream-html-ppt-skill.md.
+ *
+ * Themes override these via [data-theme="..."] selectors.
+ * No literal colors, sizes, or decorations allowed in layout rules below.
  */
 
 :root {
-  /* === Color (60-30-10) === */
-  --bg: #FFFFFF;          /* 60% background */
-  --text: #0F172A;        /* main text */
-  --accent: #4F46E5;      /* 10% emphasis */
-  --secondary: #64748B;   /* 30% secondary */
-  --bg-alt: #F8FAFC;      /* card / alt background */
+  /* ============================================================
+   * DESIGN TOKENS
+   *
+   * NEW hierarchical tokens (html-ppt-skill inspired).
+   * LEGACY tokens kept as aliases for backward compatibility.
+   * ============================================================ */
 
-  /* === Type === */
-  --font-title: system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
-  --font-body:  system-ui, -apple-system, "PingFang SC", "Outfit", sans-serif;
+  /* === Surface hierarchy === */
+  --bg: #FFFFFF;            /* outermost background */
+  --bg-soft: #F7F7F8;      /* soft background (was --bg-alt) */
+  --surface: #FFFFFF;       /* card / elevated surface */
+  --surface-2: #F2F2F4;    /* lower-contrast surface */
+  --bg-alt: var(--bg-soft); /* LEGACY alias */
 
-  /* === Size (per aspect ratio) === */
+  /* === Border === */
+  --border: rgba(0,0,0,.08);
+  --border-strong: rgba(0,0,0,.16);
+
+  /* === Text hierarchy === */
+  --text: #0F172A;          /* LEGACY — maps to --text-1 */
+  --text-1: var(--text);    /* headings / primary text */
+  --text-2: #64748B;        /* body / secondary text (was --secondary) */
+  --text-3: #8A8F9E;       /* meta / tertiary text */
+  --secondary: var(--text-2); /* LEGACY alias */
+
+  /* === Accent hierarchy === */
+  --accent: #4F46E5;        /* primary accent */
+  --accent-2: #7A5CFF;     /* accent variant (purple shift) */
+  --accent-3: #FF5C8A;     /* accent variant (pink shift) */
+
+  /* === Semantic colors (good / warn / bad) === */
+  --good: #1AAF6C;
+  --warn: #F5A524;
+  --bad:  #E0445A;
+
+  /* === Gradients === */
+  --grad: linear-gradient(135deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+  --grad-soft: linear-gradient(135deg, #EEF2FF, #F5ECFF 55%, #FFEEF5);
+
+  /* === Type hierarchy === */
+  --font-sans: "Arial", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+  --font-serif: "Playfair Display", "Noto Serif SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-sans);
+  --font-title: var(--font-display); /* LEGACY alias */
+  --font-body: var(--font-sans);     /* LEGACY alias */
+
+  /* === Letter spacing === */
+  --letter-tight: -.03em;
+  --letter-normal: -.01em;
+
+  /* === Size (per aspect ratio) — LEGACY: kept for html-image === */
   --title-size-v: 130px;  /* 3:4 portrait + 9:16 tall */
   --title-size-s: 96px;   /* 1:1 square */
   --title-size-w: 88px;   /* 16:9 wide */
@@ -30,17 +75,22 @@
   --space-3: 24px;
   --space-4: 48px;
 
-  /* === Radius / shadow === */
+  /* === Radius scale === */
+  --radius-sm: 8px;
   --radius: 12px;
-  --shadow: 0 8px 32px rgba(0,0,0,.08);
+  --radius-lg: 22px;
 
-  /* === Decor (4 corners) === */
+  /* === Shadow scale === */
+  --shadow: 0 8px 32px rgba(0,0,0,.08);
+  --shadow-lg: 0 24px 60px rgba(18,24,40,.14);
+
+  /* === Decor (4 corners) — LEGACY === */
   --decor-tl: none;
   --decor-tr: none;
   --decor-bl: none;
   --decor-br: none;
 
-  /* === Feature flags (none | block) === */
+  /* === Feature flags (none | block) — LEGACY === */
   --accent-line: none;       /* top 4px accent bar */
   --accent-block: none;      /* right side accent block */
   --terminal-bar: none;      /* terminal-style traffic light dots */
@@ -333,18 +383,80 @@
   * { animation: none !important; transition: none !important; }
 }
 
-/* === Utility classes for future layout-types ===
- * Token-driven primitives inspired by lewislulu/html-ppt-skill.
- * Safe to use in any layout-type file or theme override. */
+/* ============================================================
+ * LAYOUT PRIMITIVES
+ * Token-driven. Safe in any layout-type file or theme override.
+ * Inspired by lewislulu/html-ppt-skill (MIT).
+ * ============================================================ */
+
+/* === Stack (vertical rhythm) === */
 .stack > * + * { margin-top: var(--space-2); }
 .stack-lg > * + * { margin-top: var(--space-3); }
+
+/* === Row (horizontal flex) === */
 .row { display: flex; gap: var(--space-2); align-items: center; }
 .row.wrap { flex-wrap: wrap; }
+
+/* === Center === */
 .center { display: flex; align-items: center; justify-content: center; text-align: center; }
+
+/* === Grid === */
+.grid { display: grid; gap: var(--space-2); }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+
+/* === Card === */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.card-soft { background: var(--surface-2); border-color: var(--border); }
+.card-outline { background: transparent; border-color: var(--border-strong); box-shadow: none; }
+.card-accent { border-top: 3px solid var(--accent); }
+
+/* === Pill / badge === */
+.pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.pill-accent {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+/* === Typography helpers === */
+.kicker { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+.eyebrow { font-size: 13px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2); }
+.lede { font-size: 22px; line-height: 1.55; color: var(--text-2); font-weight: 300; }
+.dim { color: var(--text-2); }
+.dim2 { color: var(--text-3); }
+.gradient-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: var(--accent); }
+.serif { font-family: var(--font-serif); }
+.mono { font-family: var(--font-mono); }
+
+/* === Dividers === */
+.divider { height: 1px; background: var(--border); width: 100%; }
 .divider-accent { height: 3px; width: 72px; background: var(--accent); border-radius: 2px; margin: var(--space-2) 0; }
 .divider-accent.center-x { margin-left: auto; margin-right: auto; }
-.kicker { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
-.eyebrow { font-size: 13px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--secondary); }
-.dim { color: var(--secondary); }
-.pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--bg-alt); color: var(--secondary); }
-.pill-accent { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+
+/* === Spacing utilities === */
+.mt-s { margin-top: var(--space-1); }
+.mt-m { margin-top: var(--space-2); }
+.mt-l { margin-top: var(--space-3); }
+.mb-s { margin-bottom: var(--space-1); }
+.mb-m { margin-bottom: var(--space-2); }
+.mb-l { margin-bottom: var(--space-3); }
+.fill { flex: 1; }

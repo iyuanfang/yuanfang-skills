@@ -8,6 +8,7 @@
 /yuanfang-design/showcase/output/
 /yuanfang-html-image/tests/.visual-tmp/
 /yuanfang-html-image/tests/.animation-out/
+/yuanfang-html-ppt/tests/visual-baselines/*.pptx
 
 # Stray shell-expansion artifacts (e.g. accidental `~/` dirs)
 /~/

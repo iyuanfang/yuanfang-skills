@@ -1,234 +1,256 @@
 'use strict';
-const fs = require('node:fs');
-const path = require('node:path');
 
-const PX_PER_INCH = 96;
-const PX_TO_INCH = 1 / PX_PER_INCH;
+const { addSlideFooter } = require('./slide-footer');
+const { ptInch } = require('./units');
+const { applyBackground } = require('./background');
 
-function renderTemplate(html, data) {
-  let out = html;
-  for (const [key, value] of Object.entries(data)) {
-    const placeholder = `{{${key}}}`;
-    if (Array.isArray(value)) {
-      if (value.length > 0 && typeof value[0] === 'string') {
-        out = out.split(placeholder).join(value.map(v => `<li>${escapeHtml(v)}</li>`).join(''));
-      } else {
-        out = out.split(placeholder).join(value.map(v => metricCardHtml(v)).join(''));
-      }
-    } else {
-      out = out.split(placeholder).join(escapeHtml(String(value)));
-    }
+const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
+
+function applyNotes(slide, text) {
+  if (typeof text === 'string' && text.trim() !== '' && typeof slide.addNotes === 'function') {
+    slide.addNotes(text);
   }
-  return out;
 }
 
 function metricCardHtml(m) {
-  return `<div class="metric-card"><div class="metric-label">${escapeHtml(m.label || '')}</div><div class="metric-value">${escapeHtml(m.value || '')}</div><div class="metric-change">${escapeHtml(m.change || '')}</div></div>`;
-}
-
-function escapeHtml(s) {
-  return String(s)
+  const esc = (s) => String(s || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/>/g, '&gt;');
+  return `<div class="metric-card"><div class="metric-label">${esc(m.label)}</div><div class="metric-value">${esc(m.value)}</div><div class="metric-change">${esc(m.change)}</div></div>`;
 }
 
-function mapToPptxAdd(rect) {
+function cssShadowToProps(shadowStr) {
+  if (!shadowStr || shadowStr === 'none' || shadowStr === '') return undefined;
+  const m = shadowStr.match(/(-?\d+)px\s+(-?\d+)px\s+(-?\d+)px\s+rgba?\(([^)]+)\)/);
+  if (!m) return undefined;
+  const offsetY = parseInt(m[2], 10);
+  const blur = Math.max(0, parseInt(m[3], 10));
+  const rgba = m[4].split(',').map(s => parseFloat(s.trim()));
+  const r = Math.round(rgba[0] || 0);
+  const g = Math.round(rgba[1] || 0);
+  const b = Math.round(rgba[2] || 0);
+  const alpha = rgba[3] !== undefined ? rgba[3] : 1;
+  const color = `${[r, g, b].map(n => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
   return {
-    x: pxToInch(rect.x),
-    y: pxToInch(rect.y),
-    w: pxToInch(rect.width),
-    h: pxToInch(rect.height),
-    color: rect.color,
-    fontSize: rect.fontSize,
-    fontFace: rect.fontFace,
-    bold: rect.bold,
-    align: rect.align,
+    type: 'outer',
+    color,
+    opacity: Math.round(alpha * 100) / 100,
+    blur: Math.min(100, blur / 4),
+    angle: 90,
+    offset: Math.min(200, Math.abs(offsetY) / 4),
   };
 }
 
-function pxToInch(px) {
-  if (typeof px !== 'number') return px;
-  return Math.round(px * PX_TO_INCH * 1000) / 1000;
-}
-
-function prepareSlideData(slide, sectionNum = '01') {
-  const data = { SECTION_NUM: sectionNum, TITLE: slide.title || '' };
-  if (slide.layout === 'two-column') {
-    data.LEFT_TITLE = slide.leftTitle || '';
-    data.LEFT_POINTS = slide.leftPoints || [];
-    data.RIGHT_TITLE = slide.rightTitle || '';
-    data.RIGHT_POINTS = slide.rightPoints || [];
-  } else if (slide.layout === 'data') {
-    data.METRIC_CARDS = slide.metrics || [];
-  } else if (slide.layout === 'quote') {
-    data.QUOTE = slide.quote || '';
-    data.ATTRIBUTION = slide.attribution || '';
+function applyFeatureFlags(slide, theme, dims) {
+  if (theme.accentLine && theme.accentLine !== 'none' && theme.accentLine !== '') {
+    slide.addShape('rect', {
+      x: 0, y: 0, w: dims.w, h: 0.05,
+      fill: { color: theme.accent },
+      line: { color: theme.accent, width: 0 },
+    });
   }
-  return data;
+  if (theme.accentBlock && theme.accentBlock !== 'none' && theme.accentBlock !== '') {
+    slide.addShape('rect', {
+      x: dims.w * 0.85, y: 0, w: dims.w * 0.15, h: dims.h,
+      fill: { color: theme.accent },
+      line: { color: theme.accent, width: 0 },
+    });
+  }
+  if (theme.terminalBar && theme.terminalBar !== 'none' && theme.terminalBar !== '') {
+    const barH = 0.4;
+    const dotR = 0.12;
+    const dotY = barH / 2;
+    slide.addShape('rect', {
+      x: 0, y: 0, w: dims.w, h: barH,
+      fill: { color: theme.secondary },
+      line: { color: theme.secondary, width: 0 },
+    });
+    for (let i = 0; i < 3; i++) {
+      const colors = ['#FF5F56', '#FFBD2E', '#27C93F'];
+      slide.addShape('ellipse', {
+        x: 0.2 + i * (dotR * 2 + 0.1), y: dotY - dotR, w: dotR * 2, h: dotR * 2,
+        fill: { color: colors[i] },
+        line: { color: colors[i], width: 0 },
+      });
+    }
+  }
 }
 
-function buildSectionFromTemplate(pres, slide, theme, htmlTemplate, sectionNum) {
-  const data = prepareSlideData(slide, sectionNum);
-  const fullHtml = renderTemplate(htmlTemplate, data);
+function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 2.5, w: 13.333 - theme.spacing * 2, h: 1.5,
+    x: ptInch(theme.spacing), y: dims.h * 0.32, w: usableW, h: 1.5,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
-    color: theme.accent, bold: true, align: 'center', opacity: 0.6,
+    color: theme.accent, bold: true, align: 'center', opacity: 0.5,
   });
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 4.0, w: 13.333 - theme.spacing * 2, h: 0.8,
+    x: ptInch(theme.spacing), y: dims.h * 0.50, w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH1,
     color: theme.text, bold: true, align: 'center',
   });
   s.addShape('line', {
-    x: 6.0, y: 5.0, w: 1.33, h: 0,
+    x: dims.w * 0.40, y: dims.h * 0.68, w: dims.w * 0.20, h: 0,
     line: { color: theme.accent, width: 4 },
   });
+  applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
-function buildTwoColumnFromTemplate(pres, slide, theme) {
+function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 0.4, w: 13.333 - theme.spacing * 2, h: 0.8,
+    x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true,
   });
-  const colW = (13.333 - theme.spacing * 3) / 2;
-  const colY = 1.6;
-  const colH = 5.5;
+  const colGap = ptInch(theme.space3);
+  const colW = (dims.w - ptInch(theme.spacing) * 2 - colGap) / 2;
+  const colY = dims.h * 0.22;
+  const colH = dims.h * 0.70;
+  const cardPad = ptInch(theme.space3);
   s.addShape('roundRect', {
-    x: theme.spacing, y: colY, w: colW, h: colH,
+    x: ptInch(theme.spacing), y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
     line: { color: theme.bgAlt, width: 0 },
     rectRadius: theme.rectRadius,
+    shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.leftTitle || '', {
-    x: theme.spacing + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) + cardPad, y: colY + cardPad, w: colW - cardPad * 2, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const leftBody = (slide.leftPoints || []).map(p => '• ' + p).join('\n');
   if (leftBody) {
     s.addText(leftBody, {
-      x: theme.spacing + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) + cardPad, y: colY + 1.1, w: colW - cardPad * 2, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
-      color: theme.text, valign: 'top', paraSpaceAfter: 8,
+      color: theme.text, valign: 'top', paraSpaceAfter: theme.space1,
     });
   }
   s.addShape('roundRect', {
-    x: theme.spacing * 2 + colW, y: colY, w: colW, h: colH,
+    x: ptInch(theme.spacing) + colW + colGap, y: colY, w: colW, h: colH,
     fill: { color: theme.bgAlt },
     line: { color: theme.bgAlt, width: 0 },
     rectRadius: theme.rectRadius,
+    shadow: cssShadowToProps(theme.shadow) || undefined,
   });
   s.addText(slide.rightTitle || '', {
-    x: theme.spacing * 2 + colW + 0.3, y: colY + 0.3, w: colW - 0.6, h: 0.6,
+    x: ptInch(theme.spacing) + colW + colGap + cardPad, y: colY + cardPad, w: colW - cardPad * 2, h: 0.6,
     fontFace: theme.fontTitle, fontSize: theme.sizeH3,
     color: theme.accent, bold: true,
   });
   const rightBody = (slide.rightPoints || []).map(p => '• ' + p).join('\n');
   if (rightBody) {
     s.addText(rightBody, {
-      x: theme.spacing * 2 + colW + 0.3, y: colY + 1.1, w: colW - 0.6, h: colH - 1.4,
+      x: ptInch(theme.spacing) + colW + colGap + cardPad, y: colY + 1.1, w: colW - cardPad * 2, h: colH - 1.4,
       fontFace: theme.fontBody, fontSize: theme.sizeBase,
       color: theme.text, valign: 'top', paraSpaceAfter: 8,
     });
   }
+  applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
-function buildDataFromTemplate(pres, slide, theme) {
+function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
+  const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
-    x: theme.spacing, y: 0.4, w: 13.333 - theme.spacing * 2, h: 0.8,
+    x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
     fontFace: theme.fontTitle, fontSize: theme.sizeH2,
     color: theme.text, bold: true,
   });
   const metrics = slide.metrics || [];
   if (metrics.length === 0) return s;
   const cols = Math.min(3, metrics.length);
-  const cardW = (13.333 - theme.spacing * (cols + 1)) / cols;
-  const cardH = 2.5;
-  const cardY = 1.8;
+  const interCardGap = ptInch(theme.space3);
+  const cardW = (dims.w - ptInch(theme.spacing) * 2 - interCardGap * (cols - 1)) / cols;
+  const cardH = dims.h * 0.32;
+  const cardY = dims.h * 0.22;
+  const cardPad = ptInch(theme.space1);
   metrics.forEach((m, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const x = theme.spacing + col * (cardW + theme.spacing);
-    const y = cardY + row * (cardH + theme.spacing);
+    const x = ptInch(theme.spacing) + col * (cardW + interCardGap);
+    const y = cardY + row * (cardH + ptInch(theme.spacing));
     s.addShape('roundRect', {
       x, y, w: cardW, h: cardH,
       fill: { color: theme.bgAlt },
       line: { color: theme.bgAlt, width: 0 },
       rectRadius: theme.rectRadius,
+      shadow: cssShadowToProps(theme.shadow) || undefined,
     });
     s.addText(m.label || '', {
-      x: x + 0.2, y: y + 0.2, w: cardW - 0.4, h: 0.4,
+      x: x + cardPad, y: y + cardPad, w: cardW - cardPad * 2, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.secondary, align: 'center',
     });
     s.addText(m.value || '', {
-      x: x + 0.2, y: y + 0.6, w: cardW - 0.4, h: 1.0,
+      x: x + cardPad, y: y + 0.6, w: cardW - cardPad * 2, h: cardH * 0.45,
       fontFace: theme.fontTitle, fontSize: theme.sizeH1,
       color: theme.text, bold: true, align: 'center',
     });
     s.addText(m.change || '', {
-      x: x + 0.2, y: y + 1.7, w: cardW - 0.4, h: 0.4,
+      x: x + cardPad, y: y + cardH - 0.55, w: cardW - cardPad * 2, h: 0.4,
       fontFace: theme.fontBody, fontSize: theme.sizeSm,
       color: theme.accent, bold: true, align: 'center',
     });
   });
+  applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
-function buildQuoteFromTemplate(pres, slide, theme) {
+function buildQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   s.addText('"', {
-    x: 0, y: 1.5, w: 13.333, h: 2.0,
+    x: 0, y: dims.h * 0.18, w: dims.w, h: dims.h * 0.30,
     fontFace: theme.fontTitle, fontSize: 200,
     color: theme.accent, align: 'center', valign: 'middle', opacity: 0.3,
   });
   s.addText(slide.quote || '', {
-    x: 2.0, y: 3.0, w: 9.333, h: 2.0,
+    x: dims.w * 0.15, y: dims.h * 0.40, w: dims.w * 0.70, h: dims.h * 0.30,
     fontFace: theme.fontBody, fontSize: theme.sizeH2,
     color: theme.text, italic: true, align: 'center', valign: 'middle',
   });
   s.addText('— ' + (slide.attribution || ''), {
-    x: 2.0, y: 5.2, w: 9.333, h: 0.5,
+    x: dims.w * 0.15, y: dims.h * 0.72, w: dims.w * 0.70, h: 0.5,
     fontFace: theme.fontBody, fontSize: theme.sizeSm,
     color: theme.secondary, align: 'center',
   });
+  applyFeatureFlags(s, theme, dims);
+  applyNotes(s, slide.notes);
+  addSlideFooter(s, theme, dims, slide);
   return s;
 }
 
-async function renderSection(pres, slide, theme) {
-  return buildSectionFromTemplate(pres, slide, theme, '', '01');
+async function renderSection(pres, slide, theme, dims = DEFAULT_DIMS) {
+  return buildSection(pres, slide, theme, dims);
 }
-
-async function renderTwoColumn(pres, slide, theme) {
-  return buildTwoColumnFromTemplate(pres, slide, theme);
+async function renderTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
+  return buildTwoColumn(pres, slide, theme, dims);
 }
-
-async function renderData(pres, slide, theme) {
-  return buildDataFromTemplate(pres, slide, theme);
+async function renderData(pres, slide, theme, dims = DEFAULT_DIMS) {
+  return buildData(pres, slide, theme, dims);
 }
-
-async function renderQuote(pres, slide, theme) {
-  return buildQuoteFromTemplate(pres, slide, theme);
+async function renderQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
+  return buildQuote(pres, slide, theme, dims);
 }
 
 module.exports = {
-  renderTemplate, mapToPptxAdd, pxToInch, prepareSlideData,
   renderSection, renderTwoColumn, renderData, renderQuote,
-  buildSectionFromTemplate, buildTwoColumnFromTemplate,
-  buildDataFromTemplate, buildQuoteFromTemplate,
-  PX_TO_INCH, PX_PER_INCH,
+  buildSection, buildTwoColumn, buildData, buildQuote,
+  applyFeatureFlags, applyNotes, metricCardHtml, DEFAULT_DIMS,
 };

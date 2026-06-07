@@ -6,6 +6,14 @@
   --accent: #8D6E63;
   --secondary: #A09080;
   --bg-alt: #FFFFFF;
+  /* Surface hierarchy (required by yuanfang-design tokens) */
+  --surface: #FFFFFF;
+  --surface-2: var(--bg-alt);
+  --border: rgba(0,0,0,.08);
+  --border-strong: rgba(0,0,0,.18);
+  --text-1: var(--text);
+  --text-2: var(--secondary);
+  --text-3: rgba(0,0,0,.5);
 
   --font-title: "Ma Shan Zheng", "Noto Serif SC", system-ui, -apple-system, "PingFang SC", serif;
   --font-body: "Noto Serif SC", system-ui, -apple-system, "PingFang SC", sans-serif;

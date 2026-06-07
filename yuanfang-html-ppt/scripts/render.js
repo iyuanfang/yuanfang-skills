@@ -3,9 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const PptxGenJS = require('pptxgenjs');
 const { parseSlides } = require('./parse-slides');
-const { loadTheme } = require('./theme-mapper');
+const { loadTheme, listThemes } = require('./theme-mapper');
+const { applyBrandOverride } = require('./brand-override');
+const { applyThemeOverride } = require('./theme-override');
 const { renderCover, renderContent, renderSummary } = require('./generator-a');
 const { renderSection, renderTwoColumn, renderData, renderQuote } = require('./generator-c');
+const { renderChartBar, renderChartLine, renderChartPie } = require('./generator-charts');
 
 const VALID_PLATFORMS = {
   macos:      { w: 13.333, h: 7.5 },
@@ -14,11 +17,34 @@ const VALID_PLATFORMS = {
   '4-3':      { w: 10, h: 7.5 },
 };
 
+const USAGE = `用法: node scripts/render.js --file <content.json> [选项]
+
+必填:
+  --file <path>              content.json 路径
+
+内容覆盖 (可选, 优先于 content.json):
+  --theme <name>             主题名 (覆盖 content.json 的 theme)
+  --brand <name>             品牌名 (覆盖 content.json 的 brand)
+
+输出 (可选):
+  --output <path>            输出 .pptx 路径 (默认: output.pptx)
+  --platforms <key>          macos / windows / widescreen / 4-3 (默认: macos)
+  --logo <path>              cover 幻灯片右上角 logo (覆盖 content.json 的 logo)
+  --brand-spec <path>        品牌色 override 文件 (JSON, 优先级最高)
+
+其他:
+  --skip-confirm             跳过 Step 2 五项用户确认
+  --help, -h                 显示帮助
+
+可用主题: ${'(加载时检查)'} `;
+
 function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith('--')) {
+    if (a === '--help' || a === '-h') {
+      args.help = true;
+    } else if (a.startsWith('--')) {
       const key = a.slice(2);
       const next = argv[i + 1];
       if (next && !next.startsWith('--')) {
@@ -46,7 +72,16 @@ function hardGate(content, context) {
 }
 
 async function render(opts) {
+  if (opts.help) {
+    console.log(USAGE);
+    return { help: true };
+  }
+
   const content = JSON.parse(fs.readFileSync(opts.file, 'utf8'));
+
+  if (opts.theme) content.theme = opts.theme;
+  if (opts.brand) content.brand = opts.brand;
+  if (opts.logo) content.logo = opts.logo;
 
   const skip = opts['skip-confirm'] || opts.yes === true || opts.yes === 'true';
   const context = {
@@ -61,7 +96,17 @@ async function render(opts) {
   const { slides } = parseSlides(content);
 
   const designDir = path.resolve(__dirname, '..', '..', 'yuanfang-design');
-  const theme = loadTheme(content.theme, designDir);
+  let theme = loadTheme(content.theme, designDir);
+
+  if (opts['brand-spec']) {
+    const specPath = path.resolve(opts['brand-spec']);
+    if (fs.existsSync(specPath)) {
+      const brandSpec = JSON.parse(fs.readFileSync(specPath, 'utf8'));
+      theme = applyBrandOverride(theme, brandSpec);
+    } else {
+      console.warn(`⚠️ --brand-spec 文件不存在: ${specPath}, 跳过品牌色 override`);
+    }
+  }
 
   const platform = opts.platforms || 'macos';
   const dims = VALID_PLATFORMS[platform] || VALID_PLATFORMS.macos;
@@ -70,31 +115,42 @@ async function render(opts) {
   pres.layout = 'CUSTOM';
   pres.title = content.title || 'Untitled Deck';
   pres.subject = content.subject || '';
-  pres.company = content.author || '';
+  pres.author = content.author || '';
+  pres.company = content.company || content.author || '';
 
   for (const slide of slides) {
+    const slideTheme = applyThemeOverride(theme, slide);
     try {
       switch (slide.layout) {
         case 'cover':
-          renderCover(pres, slide, theme);
+          renderCover(pres, slide, slideTheme, dims);
           break;
         case 'content':
-          renderContent(pres, slide, theme);
+          renderContent(pres, slide, slideTheme, dims);
           break;
         case 'summary':
-          renderSummary(pres, slide, theme);
+          renderSummary(pres, slide, slideTheme, dims);
           break;
         case 'section':
-          await renderSection(pres, slide, theme);
+          await renderSection(pres, slide, slideTheme, dims);
           break;
         case 'two-column':
-          await renderTwoColumn(pres, slide, theme);
+          await renderTwoColumn(pres, slide, slideTheme, dims);
           break;
         case 'data':
-          await renderData(pres, slide, theme);
+          await renderData(pres, slide, slideTheme, dims);
           break;
         case 'quote':
-          await renderQuote(pres, slide, theme);
+          await renderQuote(pres, slide, slideTheme, dims);
+          break;
+        case 'chart-bar':
+          await renderChartBar(pres, slide, slideTheme, dims);
+          break;
+        case 'chart-line':
+          await renderChartLine(pres, slide, slideTheme, dims);
+          break;
+        case 'chart-pie':
+          await renderChartPie(pres, slide, slideTheme, dims);
           break;
         default:
           console.warn(`⚠️ 跳过 slide: 未知 layout '${slide.layout}'`);
@@ -107,16 +163,20 @@ async function render(opts) {
 
   const outPath = opts.output || 'output.pptx';
   await pres.writeFile({ fileName: outPath });
-  console.log(`✅ 已生成 ${outPath} (${slides.length} 张幻灯片)`);
+  console.log(`✅ 已生成 ${outPath} (${slides.length} 张幻灯片, ${platform})`);
   return { outPath, slideCount: slides.length };
 }
 
-module.exports = { render, hardGate, parseArgs, VALID_PLATFORMS };
+module.exports = { render, hardGate, parseArgs, VALID_PLATFORMS, USAGE };
 
 if (require.main === module) {
   const args = parseArgs(process.argv);
+  if (args.help) {
+    console.log(USAGE);
+    process.exit(0);
+  }
   if (!args.file) {
-    console.error('❌ 缺少 --file 参数\n用法: node scripts/render.js --file content.json --theme <name> --brand <name> [--output out.pptx] [--platforms macos] [--skip-confirm]');
+    console.error('❌ 缺少 --file 参数\n' + USAGE);
     process.exit(1);
   }
   render(args).catch(err => {
