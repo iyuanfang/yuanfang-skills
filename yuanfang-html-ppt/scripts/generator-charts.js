@@ -2,6 +2,7 @@
 
 const { addSlideFooter } = require('./slide-footer');
 const { ptInch } = require('./units');
+const { applyBackground } = require('./background');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
@@ -14,7 +15,7 @@ function normalizeChartType(layout) {
 
 function buildChart(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
 
   s.addText(slide.title || '', {

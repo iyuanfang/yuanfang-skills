@@ -2,6 +2,7 @@
 
 const { addSlideFooter } = require('./slide-footer');
 const { ptInch } = require('./units');
+const { applyBackground } = require('./background');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
@@ -78,7 +79,7 @@ function applyFeatureFlags(slide, theme, dims) {
 
 function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
     x: ptInch(theme.spacing), y: dims.h * 0.32, w: usableW, h: 1.5,
@@ -102,7 +103,7 @@ function buildSection(pres, slide, theme, dims = DEFAULT_DIMS) {
 
 function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
     x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
@@ -160,7 +161,7 @@ function buildTwoColumn(pres, slide, theme, dims = DEFAULT_DIMS) {
 
 function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
   s.addText(slide.title || '', {
     x: ptInch(theme.spacing), y: ptInch(theme.spacing), w: usableW, h: 0.8,
@@ -209,7 +210,7 @@ function buildData(pres, slide, theme, dims = DEFAULT_DIMS) {
 
 function buildQuote(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   s.addText('"', {
     x: 0, y: dims.h * 0.18, w: dims.w, h: dims.h * 0.30,
     fontFace: theme.fontTitle, fontSize: 200,

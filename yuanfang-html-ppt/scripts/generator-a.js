@@ -2,6 +2,7 @@
 
 const { addSlideFooter } = require('./slide-footer');
 const { ptInch, usableWidth, leftEdge } = require('./units');
+const { applyBackground } = require('./background');
 
 const DEFAULT_DIMS = { w: 13.333, h: 7.5 };
 
@@ -13,7 +14,7 @@ function applyNotes(slide, text) {
 
 function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const titleY = dims.h * 0.30;
   const subtitleY = dims.h * 0.50;
   const authorY = dims.h * 0.86;
@@ -76,7 +77,7 @@ function renderCover(pres, slide, theme, dims = DEFAULT_DIMS) {
 
 function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
   const titleY = theme.spacing;
   const bodyY = dims.h * 0.22;
@@ -103,7 +104,7 @@ function renderContent(pres, slide, theme, dims = DEFAULT_DIMS) {
 
 function renderSummary(pres, slide, theme, dims = DEFAULT_DIMS) {
   const s = pres.addSlide();
-  s.background = { color: theme.bg };
+  if (!applyBackground(s, slide)) s.background = { color: theme.bg };
   const usableW = dims.w - ptInch(theme.spacing) * 2;
   const closing = slide.closing || '谢谢 · Thank You';
 
