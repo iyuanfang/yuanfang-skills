@@ -18,6 +18,7 @@ const { loadContent } = require('./load-content');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DESIGN_DIR = path.join(ROOT, 'yuanfang-design');
+const PARAMS_CSS_PATH = path.join(DESIGN_DIR, 'params.css');
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function readFile(p) {
@@ -25,6 +26,27 @@ function readFile(p) {
 }
 
 function px(n) { return `${n}px`; }
+
+const VALID_ACCENTS = ['indigo', 'emerald', 'rose', 'amber', 'slate'];
+const VALID_TYPES = ['sans', 'serif', 'mono'];
+const VALID_DENSITIES = ['airy', 'normal', 'dense'];
+const VALID_DECORS = ['plain', 'subtle', 'bold'];
+
+const PARAM_VALIDATORS = {
+  accent: VALID_ACCENTS,
+  type: VALID_TYPES,
+  density: VALID_DENSITIES,
+  decor: VALID_DECORS,
+};
+
+function buildDataAttributes(themeName, params) {
+  const attrs = [`data-theme="${themeName}"`];
+  for (const [k, valid] of Object.entries(PARAM_VALIDATORS)) {
+    const v = params[k];
+    if (v && valid.includes(v)) attrs.push(`data-${k}="${v}"`);
+  }
+  return ' ' + attrs.join(' ');
+}
 
 // ── Layout generators ──────────────────────────────────────────────────
 // Each returns the <section> inner HTML matching html-ppt-skill patterns.
@@ -313,7 +335,7 @@ function escHtml(s) {
 
 // ── HTML document generator ──────────────────────────────────────────
 
-function buildHtml(slides, theme, themeCss) {
+function buildHtml(slides, theme, themeCss, paramsCss = '', params = {}) {
   const slidesHtml = slides.map((slide, i) => {
     const gen = LAYOUTS[slide.layout];
     if (!gen) return '';
@@ -486,12 +508,14 @@ html,body{width:100%;background:#1a1a1a;font-family:var(--font-sans)}
 })();
 `;
 
+  const dataAttrs = buildDataAttributes(theme, params);
   return `<!DOCTYPE html>
-<html lang="zh-CN" data-theme="${theme}">
+<html lang="zh-CN"${dataAttrs}>
 <head><meta charset="utf-8"><meta name="viewport" content="width=1920">
 <title>Slide Deck</title>
 <style>
 ${themeCss}
+${paramsCss}
 ${baseStyles}
 </style>
 </head>
@@ -576,8 +600,12 @@ async function main() {
 
   const slides = content.slides || [{ layout: 'cover', title: content.title, subtitle: content.subtitle, points: content.points }];
 
+  const paramSummary = Object.entries({
+    accent: args.accent, type: args.type, density: args.density, decor: args.decor,
+  }).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(' ');
+
   console.log(`📄 Slides: ${slides.length}`);
-  console.log(`🎨 Theme:  ${themeName}`);
+  console.log(`🎨 Theme:  ${themeName}${paramSummary ? '   ' + paramSummary : ''}`);
   console.log(`📦 Format: ${format}`);
 
   // 2. Load theme CSS
@@ -596,7 +624,21 @@ async function main() {
   }
 
   // 3. Generate HTML
-  const html = buildHtml(slides, themeName, themeCss);
+  const params = {
+    accent: args.accent,
+    type: args.type,
+    density: args.density,
+    decor: args.decor,
+  };
+  for (const [k, v] of Object.entries(params)) {
+    if (v && !PARAM_VALIDATORS[k].includes(v)) {
+      console.error(`warning: invalid --${k}="${v}", ignoring (valid: ${PARAM_VALIDATORS[k].join(', ')})`);
+      params[k] = undefined;
+    }
+  }
+  const hasParams = Object.values(params).some(Boolean);
+  const paramsCss = hasParams ? readFile(PARAMS_CSS_PATH) : '';
+  const html = buildHtml(slides, themeName, themeCss, paramsCss, params);
   // Save HTML alongside output for side-by-side comparison
   const htmlPath = outputPath.replace(/\.(pptx|pdf|png)$/i, '.html');
   fs.writeFileSync(htmlPath, html);
@@ -695,7 +737,14 @@ async function renderPptx(htmlPath, outputPath, slides, _themeName) {
   console.log(`✅ PPTX:   ${outputPath} (${(finalBuffer.length/1024).toFixed(0)} KB${noteCount ? `, ${noteCount} with notes` : ''})`);
 }
 
-main().catch(err => {
-  console.error('❌', err.message);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(err => {
+    console.error('❌', err.message);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  buildHtml, buildDataAttributes, PARAM_VALIDATORS,
+  VALID_ACCENTS, VALID_TYPES, VALID_DENSITIES, VALID_DECORS,
+};

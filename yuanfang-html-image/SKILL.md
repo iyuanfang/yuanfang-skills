@@ -274,6 +274,29 @@ node scripts/render.js \
 node scripts/render.js --preview --theme tech-modern --platforms xiaohongshu-v
 ```
 
+### Parametric 变体（可选）
+
+主题选定后，可以用 4 个参数微调视觉，不改主题名：
+
+| Flag | 取值 | 影响 |
+|------|------|------|
+| `--accent` | indigo / emerald / rose / amber / slate | 主题主色（覆盖默认）|
+| `--type` | sans / serif / mono | 标题字体 |
+| `--density` | airy / normal / dense | 元素间距（space-3/4 缩放）|
+| `--decor` | plain / subtle / bold | accent-line / accent-block 开关 |
+
+```bash
+# minimal-white 默认 indigo → 改 emerald + serif + airy
+node scripts/render.js --file content.json --theme minimal-white \
+  --accent emerald --type serif --density airy --platforms xiaohongshu-v
+```
+
+参数之间组合：5 × 3 × 3 × 3 = 135 个变体。可视化浏览：`node scripts/generate-gallery.js`（预渲染 18 主题 × 5 accent = 90 张到 `/tmp/yuanfang-gallery/`）。
+
+**注意**：参数覆盖会**破坏**部分主题的视觉身份（如 `dark-gold --accent emerald` 失去金主色）。这是显式 opt-in 行为，不警告。
+
+**Pre-flight 检查**：render.js 在生成前自动跑对比度 + 溢出检查。失败时 exit 1。绕过：`--skip-preflight`。
+
 更多参数和并行生成示例见 [references/cli.md](references/cli.md)。平台 ID 列表见 [references/platforms.md](references/platforms.md)。
 
 ---

@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { preflight } = require('../../scripts/preflight');
 
 const SCRIPT_DIR = __dirname;
 const REPO_ROOT = path.join(SCRIPT_DIR, '..', '..');
@@ -98,6 +99,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
   }
   const direction = detectDirection(content.title, content.body);
   const dataAttrs = buildDataAttributes(themeName, params);
+  const hasParams = Object.values(params).some(Boolean);
   return `<!DOCTYPE html>
 <html lang="${direction.lang}" dir="${direction.dir}"${dataAttrs}>
 <head>
@@ -107,7 +109,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
 <style>
 ${baseCSS}
 ${themeCSS}
-${loadParamsCSS()}
+${hasParams ? loadParamsCSS() : ''}
 ${brandOverrideCss}
 body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: hidden; }
 .cover { width: ${width}px; height: ${height}px; }
@@ -476,6 +478,13 @@ function main() {
   console.log(`Output:  ${outputDir}\n`);
 
   for (const platform of platforms) {
+    const check = preflight(themeCSS, params, { platform });
+    for (const w of check.warnings) console.error(`  ⚠ ${w}`);
+    if (check.errors.length && !args['skip-preflight']) {
+      for (const e of check.errors) console.error(`  ✗ ${e}`);
+      throw new Error(`Pre-flight failed for ${theme} × ${platform.id}. Use --skip-preflight to override.`);
+    }
+
     const html = assembleHTML({
       themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged, brandOverrideCss, params,
       width: platform.width, height: platform.height,
@@ -508,4 +517,5 @@ module.exports = {
   assembleHTML, renderHTML, parseArgs, resolveTemplate, resolvePlatforms,
   findBrandSpec, mergeBrandSpec, buildBrandOverrideCss,
   isImageRef, resolveQrHtml,
+  buildDataAttributes, PARAM_VALIDATORS, loadParamsCSS, preflight,
 };
