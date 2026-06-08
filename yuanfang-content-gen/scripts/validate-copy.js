@@ -29,7 +29,6 @@ function loadSchema(platform) {
   return fm || null;
 }
 
-// 解析 YAML frontmatter（简易版，够用即可）
 function parseFrontmatter(text) {
   const m = text.match(/^---\n([\s\S]+?)\n---\n/);
   if (!m) return null;
@@ -55,7 +54,9 @@ function parseFrontmatter(text) {
     if (kv) {
       currentKey = kv[1];
       const val = kv[2].trim();
-      if (val === '') {
+      if (val.startsWith('[]')) {
+        result[currentKey] = [];
+      } else if (val === '') {
         inArray = true;
         currentArray = [];
       } else {
@@ -366,4 +367,46 @@ function main() {
   process.exit(errors.length > 0 ? 1 : 0);
 }
 
-main();
+function validateCopyMd(filePath) {
+  const { fm, body } = splitCopyMd(filePath);
+  if (!fm || !fm.platform) return { ok: false, errors: ['缺少 frontmatter 或 platform'], warnings: [], score: null };
+  const platform = fm.platform;
+  const schema = loadSchema(platform);
+  if (!schema) return { ok: false, errors: [`未知平台 "${platform}"`], warnings: [], score: null };
+
+  const errors = [];
+  const warnings = [];
+  const BODY_ALIASES = ['body', 'text'];
+  const required = schema.required || [];
+  for (const field of required) {
+    let val = fm[field];
+    if (BODY_ALIASES.includes(field) && (!val || val === '')) val = body;
+    if (val === undefined || val === null || val === '' || (Array.isArray(val) && val.length === 0)) {
+      errors.push(`缺少必填字段 "${field}"`);
+    }
+  }
+
+  const pc = platformSpecificChecks(platform, fm, body);
+  errors.push(...pc.errors);
+  warnings.push(...pc.warnings);
+
+  const sw = checkSensitiveWords(platform, body);
+  errors.push(...sw.errors);
+  warnings.push(...sw.warnings);
+
+  const titleWarnings = checkTitleFormula(platform, fm.title);
+  warnings.push(...titleWarnings);
+
+  const aiHits = checkAIFlavor(body);
+  if (aiHits.length > 0) {
+    warnings.push(`检测到 AI 味句式/词汇: ${aiHits.slice(0, 3).join('、')}${aiHits.length > 3 ? ' 等' : ''}`);
+  }
+
+  const score = scoreCompliance(platform, fm, body, fm.title, filePath, schema);
+
+  return { ok: errors.length === 0, errors, warnings, score, platform, fm, body };
+}
+
+module.exports = { validateCopyMd, scoreCompliance, checkSensitiveWords, checkAIFlavor, checkTitleFormula, loadSchema, parseFrontmatter, splitCopyMd };
+
+if (require.main === module) main();

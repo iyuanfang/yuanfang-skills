@@ -203,9 +203,58 @@ AI 客服正在重新定义企业服务效率
 
 ## Step 3: 生成文案 + 配图
 
-对每个选中的平台，LLM 做两件事：
+对每个选中的平台，两件事：写 copy.md、render.js 出图。
 
-### 3a. 写平台文案 → copy.md
+### 3a.0 自动化路径（推荐）— `generate-copy.js`
+
+`scripts/generate-copy.js` 接 content.md，按平台 schema 批量生成 copy.md 并自动跑 `validate-copy.js` 验证。LLM 命中失败时自动重写（`--auto-rewrite`，最多 3 次）。
+
+**支持 LLM provider**（按环境变量自动选）：
+
+| Provider | 触发 | 默认模型 |
+|---|---|---|
+| `template` | 无 API key（默认） | 无，纯模板（fallback，输出较机械） |
+| `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-haiku-4-5` |
+
+显式指定：`--llm openai`，或环境变量 `CONTENT_GEN_LLM=anthropic`。
+
+**基本用法：**
+
+```bash
+node scripts/generate-copy.js \
+  --content content.md \
+  --platforms xiaohongshu,wechat,toutiao,zhihu,moments,weibo-micro \
+  --output output/20260608_myapp
+```
+
+**A/B 变体**：每个平台生成 N 份，写成 `copy.md` + `copy_v2.md` + `copy_v3.md`。
+
+```bash
+node scripts/generate-copy.js --content content.md --platforms xiaohongshu --variants 3
+```
+
+**自动重写**：LLM 模式且校验失败时自动重试（template 模式无意义，跳过）。
+
+```bash
+node scripts/generate-copy.js --content content.md --platforms xiaohongshu --auto-rewrite
+```
+
+输出格式：
+
+```
+output/20260608_myapp/
+├── 小红书/copy.md
+├── 小红书/copy_v2.md          (--variants 2+)
+├── 公众号/copy.md
+└── ...
+```
+
+每份 copy.md 走 `validate-copy.js`：合规分 < 35 视为 fail；fail 时 exit code 1，便于 CI 拦截。
+
+**手工 path**（如果你想自己写）见 3a.1。
+
+### 3a.1 手工路径 — 写平台文案 → copy.md
 
 基于 content.md，按平台特性改写。每个平台生成独立的 copy.md，包含 **YAML frontmatter**（结构化元数据）+ **正文**。
 
