@@ -91,18 +91,21 @@ function buildSystemPrompt(platform, schema) {
     `标题偏好：${(schema.title_formula || []).join(' | ') || '无'}`,
     `写作规则：${(schema.rules || []).join('；') || '无'}`,
     `严格禁用：广告法绝对化词（最佳/最/第一/100%等）、AI 味词（震惊、深度、颠覆、绝绝子等）。`,
+    BADGE_GUIDE,
     `输出：合法 JSON，无 markdown 包裹。`,
   ].join('\n');
 }
 
 const OUTPUT_SHAPES = {
-  xiaohongshu:   'title, body, tags (3-5 个), cta',
-  wechat:        'title, lead (200 字引子), outline (3-5 条大纲), cta, body (完整文章)',
-  toutiao:       'title, meta (一句话描述), body (300-500 字), cta',
-  zhihu:         'title, body, key_points (3-5 点), cta',
-  moments:       'text (1-3 句, ≤60 字)',
-  'weibo-micro': 'text (140-300 字)',
+  xiaohongshu:   'title, body, tags (3-5 个), cta, badge',
+  wechat:        'title, lead (200 字引子), outline (3-5 条大纲), cta, body (完整文章), badge',
+  toutiao:       'title, meta (一句话描述), body (300-500 字), cta, badge',
+  zhihu:         'title, body, key_points (3-5 点), cta, badge',
+  moments:       'text (1-3 句, ≤60 字), badge',
+  'weibo-micro': 'text (140-300 字), badge',
 };
+
+const BADGE_GUIDE = 'badge: 4-10 字小字分类（顶部 accent 色 + letter-spacing 显示），按内容 category 和平台调性生成。例如 AI 工具用「AI 工具 · 效率神器」、专业内容用「深度分析 · 行业观察」、轻松向用「日常 · 用后感」。用「·」或「|」分隔两段。';
 
 function buildUserPrompt(platform, schema, facts, variant) {
   const angle = ANGLES[variant % ANGLES.length];

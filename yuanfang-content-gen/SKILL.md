@@ -222,6 +222,8 @@ node scripts/generate-copy.js \
 
 agent 读每个平台的 `SYSTEM` + `USER` JSON，用 LLM 生成 1 个（或 N 个）JSON 响应，写成 `output/<session>/<platform>/copy.md`（第 2 份起 `copy_v2.md`、`copy_v3.md`）。
 
+**badge 自动生成**：LLM 输出的 JSON 里有 `badge` 字段（4-10 字小字分类，prompt 已指导）。agent 写 `copy.md` frontmatter 时同步把 `badge:` 写进去；写 `content.json` 时也带上 `badge`，render.js 出图会填到 `{{BADGE}}` 模板槽（顶部 accent 色 + letter-spacing 显示）。
+
 ```bash
 # 2) 验证每个 copy.md
 node scripts/validate-copy.js output/<session>/xiaohongshu/copy.md
