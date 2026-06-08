@@ -250,6 +250,35 @@ output/<session>/
 
 每份 copy.md 走 `validate-copy.js`：合规分 < 35 视为 fail；fail 时 exit code 1，便于 CI 拦截。
 
+**主题自动推荐**：`generate-copy.js` 读 `content.md` 的 `## 语气` 段，匹配内置 tone→theme 映射，输出推荐列表。两种模式都打印：
+
+```text
+# Theme recommendation (from ## 语气 in content.md):
+#   tone: 专业、克制、有理有据
+#   match: 专业
+#   themes: corporate-clean, minimal-white
+# Pass to render.js: --theme corporate-clean
+```
+
+tone 关键词 → themes 映射：
+
+| tone 关键词 | 推荐主题 |
+|---|---|
+| 专业 / 企业 | corporate-clean, minimal-white |
+| 震撼 / 重磅 | dark-gold, bold-poster |
+| 轻松 / 生活 / 温暖 / 幽默 | warm-handdrawn, catppuccin-latte |
+| 科技 / 前沿 | tech-modern, tokyo-night |
+| 深度 / 分析 | editorial, editorial-serif |
+| 路演 / 融资 | pitch-deck-vc |
+| 东方 | eastern, editorial |
+| 数据 | data-infographic, editorial |
+| 清单 | list-ranking, minimal-white |
+| 杂志 | magazine-cover, editorial-serif |
+| 对比 | split-screen, editorial |
+| (无) / 未匹配 | minimal-white-editorial, minimal-white |
+
+agent 拿推荐列表 → 写完 copy.md → 调 render.js 时直接用 `--theme <第一推荐>`。
+
 **API 给程序用**：`require('./validate-copy')` 暴露 `validateCopyMd / scoreCompliance / loadSchema / parseFrontmatter`，agent 可在 Node 进程内直接调，不走 CLI。
 
 **手工 path**（如果你想自己写）见 3a.1。

@@ -16,6 +16,46 @@ const { loadSchema } = require('./validate-copy');
 
 const ANGLES = ['真实体验角度', '痛点共鸣角度', '好奇心钩子角度'];
 
+const TONE_THEME_MAP = {
+  '专业':     ['corporate-clean', 'minimal-white'],
+  '企业':     ['corporate-clean', 'minimal-white'],
+  '震撼':     ['dark-gold', 'bold-poster'],
+  '重磅':     ['dark-gold', 'bold-poster'],
+  '轻松':     ['warm-handdrawn', 'catppuccin-latte'],
+  '生活':     ['warm-handdrawn', 'catppuccin-latte'],
+  '科技':     ['tech-modern', 'tokyo-night'],
+  '前沿':     ['tech-modern', 'tokyo-night'],
+  '深度':     ['editorial', 'editorial-serif'],
+  '分析':     ['editorial', 'editorial-serif'],
+  '路演':     ['pitch-deck-vc'],
+  '融资':     ['pitch-deck-vc'],
+  '温暖':     ['warm-handdrawn', 'catppuccin-latte'],
+  '幽默':     ['warm-handdrawn', 'catppuccin-latte'],
+  '东方':     ['eastern', 'editorial'],
+  '数据':     ['data-infographic', 'editorial'],
+  '清单':     ['list-ranking', 'minimal-white'],
+  '杂志':     ['magazine-cover', 'editorial-serif'],
+  '对比':     ['split-screen', 'editorial'],
+  '默认':     ['minimal-white-editorial', 'minimal-white'],
+};
+
+function detectTone(content) {
+  const m = content.body.match(/^##\s*语气\s*\n([^\n]+)/m);
+  if (m) {
+    const t = m[1].trim();
+    for (const key of Object.keys(TONE_THEME_MAP)) {
+      if (t.includes(key)) return { tone: t, matched: key };
+    }
+    return { tone: t, matched: null };
+  }
+  return { tone: '', matched: null };
+}
+
+function recommendThemes(toneInfo) {
+  if (toneInfo.matched) return TONE_THEME_MAP[toneInfo.matched];
+  return TONE_THEME_MAP['默认'];
+}
+
 function parseArgs() {
   const args = { platforms: [], variants: 1, printPrompts: false };
   const argv = process.argv.slice(2);
@@ -147,6 +187,13 @@ function main() {
         console.log(buildUserPrompt(platform, schema, facts, v));
       }
     }
+    const toneInfo = detectTone(content);
+    const themes = recommendThemes(toneInfo);
+    console.log(`\n========== Theme recommendation ==========`);
+    console.log(`tone: ${toneInfo.tone || '(none detected in ## 语气)'}`);
+    console.log(`match: ${toneInfo.matched || '(fallback to default minimal-white-editorial)'}`);
+    console.log(`recommended: ${themes.join(', ')}`);
+    console.log(`render.js CLI: --theme ${themes[0]}`);
     return;
   }
 
@@ -154,11 +201,20 @@ function main() {
   fs.mkdirSync(outDir, { recursive: true });
   for (const p of args.platforms) fs.mkdirSync(path.join(outDir, p), { recursive: true });
 
+  const toneInfo = detectTone(content);
+  const themes = recommendThemes(toneInfo);
+  const themeStr = themes.join(', ');
+
   console.log(`# generate-copy — agent-driven`);
   console.log(`content: ${args.content}`);
   console.log(`platforms: ${args.platforms.join(', ')}`);
   console.log(`variants per platform: ${args.variants}`);
   console.log(`output: ${outDir}`);
+  console.log(`\n# Theme recommendation (from ## 语气 in content.md):`);
+  console.log(`#   tone: ${toneInfo.tone || '(none detected)'}`);
+  console.log(`#   match: ${toneInfo.matched || '(fallback to default)'}`);
+  console.log(`#   themes: ${themeStr}`);
+  console.log(`# Pass to render.js: --theme ${themes[0]} (or any from the list)`);
   console.log(`\n# To generate, run with --print-prompts and feed each prompt to your LLM.`);
   console.log(`# Then write the LLM's JSON output as copy.md in each platform dir.`);
   console.log(`# Finally validate:`);
