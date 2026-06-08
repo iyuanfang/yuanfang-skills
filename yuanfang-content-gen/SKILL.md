@@ -22,6 +22,14 @@ description: |
 
 **工作目录约定**：所有命令以**本 skill 所在目录**（`yuanfang-content-gen/`）为 cwd 执行。`output/` 写在本 skill 目录下，调用兄弟 skill 用 `../<brother-skill>/` 相对路径。
 
+**品牌提取**（Step 2 备选）：如果用户给了 URL 但没指定主色，可用
+
+```bash
+node scripts/extract-brand.js <url>
+```
+
+脚本返回 JSON 含 `brand_name` 和 `primary_color`（基于品牌名 hash 在 5 色调色板里推荐，**LLM 可建议用户覆盖**）。
+
 ---
 
 ## 工作流速览

@@ -99,6 +99,94 @@ const AI_FLAVOR_PHRASES = [
 // 机械序列检测：先/其次/再次/最后 中出现 3 个及以上
 const MECHANICAL_SEQ = /(首先|第一)[,，、\s].*?(其次|第二)[,，、\s].*?(然后|再次|第三|接着|最后)/;
 
+const SENSITIVE_WORDS = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'data', 'sensitive-words.json'), 'utf-8')
+);
+
+function checkSensitiveWords(platform, body) {
+  const errors = [];
+  const warnings = [];
+  for (const w of SENSITIVE_WORDS.t1_hard_forbidden.matches) {
+    if (body.includes(w)) errors.push(`T1 硬违禁词: "${w}" — 任何平台都不能用`);
+  }
+  const platformRules = SENSITIVE_WORDS.t2_platform_sensitive[platform];
+  if (platformRules) {
+    for (const w of platformRules.matches) {
+      if (body.includes(w)) errors.push(`T2 平台敏感词 [${platform}]: "${w}" — 此平台不能发`);
+    }
+  }
+  for (const w of SENSITIVE_WORDS.t3_soft_risk.matches) {
+    if (body.includes(w)) warnings.push(`T3 软风险词: "${w}" — 建议补证据或换中性词`);
+  }
+  return { errors, warnings };
+}
+
+function scoreCompliance(platform, fm, body, title, filePath, schema) {
+  const dims = {};
+
+  dims.legal = 10;
+  for (const w of SENSITIVE_WORDS.t1_hard_forbidden.matches) {
+    if (body.includes(w)) dims.legal = Math.max(0, dims.legal - 3);
+  }
+  for (const w of SENSITIVE_WORDS.t3_soft_risk.matches) {
+    if (body.includes(w)) dims.legal = Math.max(0, dims.legal - 1);
+  }
+
+  dims.platform_fit = 10;
+  const platformRules = SENSITIVE_WORDS.t2_platform_sensitive[platform];
+  if (platformRules) {
+    for (const w of platformRules.matches) {
+      if (body.includes(w)) dims.platform_fit = Math.max(0, dims.platform_fit - 5);
+    }
+  }
+  const lenRule = COMMON_TITLE_RULES[platform] || {};
+  if (title && !lenRule.skip) {
+    if (lenRule.maxLen && title.length > lenRule.maxLen) dims.platform_fit -= 2;
+    if (lenRule.minLen && title.length < lenRule.minLen) dims.platform_fit -= 2;
+    if (lenRule.requireEmoji && !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(title)) dims.platform_fit -= 3;
+    if (lenRule.requireQuestionMark && !title.includes('？') && !title.includes('?')) dims.platform_fit -= 2;
+  }
+
+  dims.humanness = 10;
+  const aiHits = checkAIFlavor(body);
+  dims.humanness = Math.max(0, 10 - aiHits.length * 2);
+
+  dims.cta = 10;
+  if (schema.required && schema.required.includes('cta')) {
+    if (fm && fm.cta) {
+      if (typeof fm.cta === 'string' && fm.cta.length < 5) dims.cta -= 5;
+    } else {
+      dims.cta = 0;
+    }
+  }
+
+  dims.structure = 10;
+  if (!body || body.length < 50) dims.structure -= 4;
+  if (body && body.length > 50 && !/[。！？\n]/.test(body)) dims.structure -= 3;
+
+  dims.uniqueness = 10;
+  const myDir = path.dirname(filePath);
+  const parentDir = path.dirname(myDir);
+  if (fs.existsSync(parentDir) && fs.statSync(parentDir).isDirectory()) {
+    const sibs = fs.readdirSync(parentDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && d.name !== path.basename(myDir))
+      .map(d => path.join(parentDir, d.name, 'copy.md'))
+      .filter(p => fs.existsSync(p) && p !== filePath);
+    for (const s of sibs) {
+      const sibText = fs.readFileSync(s, 'utf-8');
+      const sibBody = sibText.replace(/^---[\s\S]*?---\n/, '').trim();
+      const short = body.length <= sibBody.length ? body : sibBody;
+      const long = body.length <= sibBody.length ? sibBody : body;
+      if (long.includes(short) && short.length >= 30) dims.uniqueness = Math.max(0, dims.uniqueness - 4);
+    }
+  }
+
+  for (const k of Object.keys(dims)) dims[k] = Math.max(0, Math.min(10, dims[k]));
+
+  const total = Object.values(dims).reduce((a, b) => a + b, 0);
+  return { dims, total, max: 60 };
+}
+
 function checkAIFlavor(body) {
   const hits = [];
   for (const phrase of AI_FLAVOR_PHRASES) {
@@ -232,6 +320,10 @@ function main() {
   errors.push(...pc.errors);
   warnings.push(...pc.warnings);
 
+  const sw = checkSensitiveWords(platform, body);
+  errors.push(...sw.errors);
+  warnings.push(...sw.warnings);
+
   const titleWarnings = checkTitleFormula(platform, fm.title);
   warnings.push(...titleWarnings);
 
@@ -260,16 +352,18 @@ function main() {
     }
   }
 
-  // 输出
+  const score = scoreCompliance(platform, fm, body, fm.title, filePath, schema);
+
   const label = path.basename(filePath);
   if (errors.length === 0 && warnings.length === 0) {
     console.log(`  ✓ ${label} (${platform}) — 通过`);
-    process.exit(0);
   } else {
     for (const e of errors) console.error(`  ✗ ${label}: ${e}`);
     for (const w of warnings) console.error(`  ⚠ ${label}: ${w}`);
-    process.exit(errors.length > 0 ? 1 : 0);
   }
+  const dimStr = Object.entries(score.dims).map(([k, v]) => `${k}=${v}`).join(' ');
+  console.error(`  📊 合规分: ${score.total}/${score.max} (${dimStr})`);
+  process.exit(errors.length > 0 ? 1 : 0);
 }
 
 main();
