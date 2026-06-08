@@ -1,15 +1,15 @@
-[data-accent="indigo"]  { --accent: #4F46E5; --accent-container: color-mix(in srgb, #4F46E5 15%, var(--bg)); }
-[data-accent="emerald"] { --accent: #059669; --accent-container: color-mix(in srgb, #059669 15%, var(--bg)); }
-[data-accent="rose"]    { --accent: #E11D48; --accent-container: color-mix(in srgb, #E11D48 15%, var(--bg)); }
-[data-accent="amber"]   { --accent: #D97706; --accent-container: color-mix(in srgb, #D97706 15%, var(--bg)); }
-[data-accent="slate"]   { --accent: #475569; --accent-container: color-mix(in srgb, #475569 15%, var(--bg)); }
+[data-accent="indigo"],  [data-accent="indigo"] *  { --accent: #4F46E5; --accent-container: color-mix(in srgb, #4F46E5 15%, var(--bg)); }
+[data-accent="emerald"], [data-accent="emerald"] * { --accent: #059669; --accent-container: color-mix(in srgb, #059669 15%, var(--bg)); }
+[data-accent="rose"],    [data-accent="rose"] *    { --accent: #E11D48; --accent-container: color-mix(in srgb, #E11D48 15%, var(--bg)); }
+[data-accent="amber"],   [data-accent="amber"] *   { --accent: #D97706; --accent-container: color-mix(in srgb, #D97706 15%, var(--bg)); }
+[data-accent="slate"],   [data-accent="slate"] *   { --accent: #475569; --accent-container: color-mix(in srgb, #475569 15%, var(--bg)); }
 
-[data-type="serif"] { --font-title: "Source Serif 4", "Source Serif Pro", "Noto Serif SC", Georgia, serif; }
-[data-type="mono"]  { --font-title: "JetBrains Mono", "IBM Plex Mono", monospace; }
+[data-type="serif"],  [data-type="serif"] *  { --font-title: "Source Serif 4", "Source Serif Pro", "Noto Serif SC", Georgia, serif; }
+[data-type="mono"],   [data-type="mono"] *   { --font-title: "JetBrains Mono", "IBM Plex Mono", monospace; }
 
-[data-density="airy"]  { --space-3: 32px; --space-4: 64px; }
-[data-density="dense"] { --space-3: 16px; --space-4: 32px; }
+[data-density="airy"],  [data-density="airy"] *  { --space-3: 32px; --space-4: 64px; }
+[data-density="dense"], [data-density="dense"] * { --space-3: 16px; --space-4: 32px; }
 
-[data-decor="plain"]  { --accent-line: none; --accent-block: none; }
-[data-decor="subtle"] { --accent-line: block; --accent-block: none; }
-[data-decor="bold"]   { --accent-line: block; --accent-block: block; }
+[data-decor="plain"],  [data-decor="plain"] *  { --accent-line: none; --accent-block: none; }
+[data-decor="subtle"], [data-decor="subtle"] * { --accent-line: block; --accent-block: none; }
+[data-decor="bold"],   [data-decor="bold"] *   { --accent-line: block; --accent-block: block; }

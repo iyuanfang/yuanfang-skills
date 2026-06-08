@@ -2,9 +2,10 @@
 
 A collection of design + content skills for AI agents. Currently includes:
 
-- **`yuanfang-design/`** — Shared design system (CSS token variables, 12 themes, layout blocks)
+- **`yuanfang-design/`** — Shared design system (CSS token variables, 18 themes, layout blocks)
 - **`yuanfang-html-image/`** — Generate social media images from text via HTML + Playwright
-- **`yuanfang-html-ppt/`** — Generate .pptx presentations from content.json (7 layouts, A+C hybrid engine)
+- **`yuanfang-html-ppt/`** — Generate .pptx presentations from content.yaml (14 layouts, single dom-to-pptx engine)
+- **`yuanfang-content-gen/`** — Multi-platform content generator: content.md → platform copy + images
 
 ## 安装 (OpenCode / Claude Code)
 
@@ -26,6 +27,7 @@ npx playwright install chromium
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design     ~/.config/opencode/skills/yuanfang-design
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image ~/.config/opencode/skills/yuanfang-html-image
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.config/opencode/skills/yuanfang-html-ppt
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen ~/.config/opencode/skills/yuanfang-content-gen
 ```
 
 **Claude Code:**
@@ -33,6 +35,7 @@ ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.config/opencode/s
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design     ~/.claude/skills/yuanfang-design
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image ~/.claude/skills/yuanfang-html-image
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.claude/skills/yuanfang-html-ppt
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen ~/.claude/skills/yuanfang-content-gen
 ```
 
 **Codex:**
@@ -40,6 +43,7 @@ ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.claude/skills/yua
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design     ~/.agents/skills/yuanfang-design
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image ~/.agents/skills/yuanfang-html-image
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.agents/skills/yuanfang-html-ppt
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen ~/.agents/skills/yuanfang-content-gen
 ```
 
 > 每个 skill 需要单独 symlink（OpenCode 没有自动依赖安装）。未来新增 skill 时加一行 symlink 即可。
@@ -83,16 +87,19 @@ npm install
 ## 架构
 
 ```
-yuanfang-skills/                    ← 整个仓库 clone 到 ~/.opencode/repos/
-├── yuanfang-design/                ← 基座 skill：CSS token、12 主题、布局模板
-│   ├── base.css                    （其他 skill 通过 ../../yuanfang-design/ 引用）
+yuanfang-skills/                        ← 整个仓库 clone 到 ~/.opencode/repos/
+├── yuanfang-design/                    ← 基座 skill：CSS token、18 主题、布局模板
+│   ├── base.css                        （其他 skill 通过 ../../yuanfang-design/ 引用）
 │   └── themes/*.css
-├── yuanfang-html-image/            ← 消费者 skill：生成社交媒体配图
+├── yuanfang-html-image/                ← 消费者 skill：生成社交媒体配图
 │   └── scripts/render.js → 依赖 → ../../yuanfang-design/
-└── yuanfang-html-ppt/              ← PPTX 生成 (PptxGenJS, 7 布局, 12 主题, 品牌色 override)
+├── yuanfang-html-ppt/                  ← PPTX 生成（dom-to-pptx，14 布局，18 主题）
+│   ├── SKILL.md
+│   ├── scripts/
+│   └── tests/
+└── yuanfang-content-gen/               ← 内容编排 skill：多平台文案 + 配图生成
     ├── SKILL.md
-    ├── scripts/                  (render, parse-slides, theme-mapper, generators, brand-override)
-    └── tests/                    (unit + integration + fixtures + visual-baselines/)
+    └── output/
 ```
 
 所有 skill 共享同一个 `yuanfang-design/` 设计系统。`render.js` 通过 `__dirname` 的 `../../` 定位到仓库根目录，再找 `yuanfang-design/`——symlink 指向真实路径，所以始终能正确解析。

@@ -395,8 +395,8 @@ function mergeBrandSpec(content, spec) {
 function buildBrandOverrideCss(spec, themeName) {
   if (!spec || !spec.colors) return '';
   const c = spec.colors;
+  // NOTE: --accent is intentionally excluded — params.css handles it now
   const map = {
-    '--accent': c.primary,
     '--bg': c.background,
     '--secondary': c.secondary,
   };

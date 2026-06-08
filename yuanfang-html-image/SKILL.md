@@ -274,28 +274,30 @@ node scripts/render.js \
 node scripts/render.js --preview --theme tech-modern --platforms xiaohongshu-v
 ```
 
-### Parametric 变体（可选）
+### Parametric 变体（AI 自动推荐，不单独问用户）
 
-主题选定后，可以用 4 个参数微调视觉，不改主题名：
+4 个参数由 AI 根据内容上下文自动选择，直接填入 CLI。无需让用户单独做参数决策。
 
-| Flag | 取值 | 影响 |
-|------|------|------|
-| `--accent` | indigo / emerald / rose / amber / slate | 主题主色（覆盖默认）|
-| `--type` | sans / serif / mono | 标题字体 |
-| `--density` | airy / normal / dense | 元素间距（space-3/4 缩放）|
-| `--decor` | plain / subtle / bold | accent-line / accent-block 开关 |
+| 参数 | 自动推荐规则 |
+|------|-------------|
+| `--accent` | 默认使用主题自带 accent。仅当语气强烈偏向某色时覆盖：金融/环保 → `emerald`，紧迫/促销 → `amber`，情感/女性 → `rose`，科技 → `indigo`（默认），高端/低调 → `slate` |
+| `--type` | `sans`（默认）。编辑/深度内容 → `serif`，技术/开发内容 → `mono` |
+| `--density` | 根据 points 数量：≤2 → `airy`，3-4 → 不传（正常），≥5 → `dense` |
+| `--decor` | `plain`（默认）。高端/正式语气 → `subtle`，重磅/发布会 → `bold` |
 
 ```bash
-# minimal-white 默认 indigo → 改 emerald + serif + airy
+# AI 根据内容自动推荐参数
 node scripts/render.js --file content.json --theme minimal-white \
   --accent emerald --type serif --density airy --platforms xiaohongshu-v
 ```
 
-参数之间组合：5 × 3 × 3 × 3 = 135 个变体。可视化浏览：`node scripts/generate-gallery.js`（预渲染 18 主题 × 5 accent = 90 张到 `/tmp/yuanfang-gallery/`）。
+参数之间组合：5 × 3 × 3 × 3 = 135 个变体。可视化浏览：`node scripts/generate-gallery.js`（预渲染 18 主题 × 5 accent = 90 张到 gallery/index.html）。
 
 **注意**：参数覆盖会**破坏**部分主题的视觉身份（如 `dark-gold --accent emerald` 失去金主色）。这是显式 opt-in 行为，不警告。
 
 **Pre-flight 检查**：render.js 在生成前自动跑对比度 + 溢出检查。失败时 exit 1。绕过：`--skip-preflight`。
+
+**输出说明**：渲染完成后在结果中顺带一提（如"配图以 emerald 色调 + serif 字体呈现"），用户想改可以后续指定参数。
 
 更多参数和并行生成示例见 [references/cli.md](references/cli.md)。平台 ID 列表见 [references/platforms.md](references/platforms.md)。
 
