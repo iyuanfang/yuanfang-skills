@@ -131,7 +131,7 @@ function buildSystemPrompt(platform, schema) {
     `标题偏好：${(schema.title_formula || []).join(' | ') || '无'}`,
     `写作规则：${(schema.rules || []).join('；') || '无'}`,
     `严格禁用：广告法绝对化词（最佳/最/第一/100%等）、AI 味词（震惊、深度、颠覆、绝绝子等）。`,
-    BADGE_GUIDE,
+    BADGE_GUIDE(platform),
     `输出：合法 JSON，无 markdown 包裹。`,
   ].join('\n');
 }
@@ -145,7 +145,79 @@ const OUTPUT_SHAPES = {
   'weibo-micro': 'text (140-300 字), badge',
 };
 
-const BADGE_GUIDE = 'badge: 4-10 字小字分类（顶部 accent 色 + letter-spacing 显示），按内容 category 和平台调性生成。例如 AI 工具用「AI 工具 · 效率神器」、专业内容用「深度分析 · 行业观察」、轻松向用「日常 · 用后感」。用「·」或「|」分隔两段。';
+// 跨平台 badge 调性表（4-10 字小字分类，顶部 accent 色 + letter-spacing 显示）。
+// 第一段描述「内容/品类/视角」，第二段描述「调性/情绪/价值」。用「·」或「|」分隔。
+// 平台调性不同 → badge 调性也要不同，否则在朋友圈像硬广、在小红书像公关稿。
+const PLATFORM_BADGE_TONE = {
+  xiaohongshu: {
+    vibe: '种草、亲测、闺蜜分享、可盐可甜',
+    forbidden: '像「行业观察/深度分析」这种硬词会瞬间劝退',
+    templates: [
+      '产品/品类 · 神器/避雷/亲测/狂喜/好用/宝藏/上头',
+      '品类 · 测评/对比/盘点/合集',
+      '痛点场景 · 解法',
+    ],
+    examples: ['AI 工具 · 效率神器', '运营干货 · 避雷指南', '私藏好物 · 亲测有效'],
+  },
+  wechat: {
+    vibe: '深度、专业、克制、像编辑推荐而非广告',
+    forbidden: '感叹号、emoji、姐妹/家人们等小红书腔',
+    templates: [
+      '品类/行业 · 行业观察/深度/方法论/复盘',
+      '领域 · 拆解/选型指南/方法论',
+    ],
+    examples: ['SaaS 选型 · 行业观察', 'AI 落地 · 行业拆解', '产品经理 · 深度复盘'],
+  },
+  toutiao: {
+    vibe: '资讯、新闻、行业动态、像 36 氪短消息',
+    forbidden: '亲测/姐妹这种主观词；标题党感',
+    templates: [
+      '行业/品类 · 行业动态/资讯/快讯/盘点',
+      '品类 · 数据/榜单/趋势',
+    ],
+    examples: ['AI 资讯 · 行业动态', '电商 SaaS · 行业盘点', '产品动态 · 趋势解读'],
+  },
+  zhihu: {
+    vibe: '专业、从业者视角、克制、信息密度高',
+    forbidden: '种草/避雷这种小红书调；emoji 慎用',
+    templates: [
+      '领域 · 深度回答/从业者说/技术拆解',
+      '问题分类 · 答案',
+    ],
+    examples: ['深度回答 · 行业从业者', 'SaaS 选型 · 资深 PM', 'AI 工程 · 落地拆解'],
+  },
+  moments: {
+    vibe: '日常、随手、用后感、不像广告',
+    forbidden: '任何带「深度/行业/方法论」感的词；CTA/二维码相关词',
+    templates: [
+      '场景 · 体验/用后感/吐槽/安利',
+      '心情 · 小记',
+    ],
+    examples: ['日常 · 用后感', '创业 · 小记', '工具 · 亲测'],
+  },
+  'weibo-micro': {
+    vibe: '短评、观点、互动感、像跟网友聊天',
+    forbidden: '标题党、长描述；任何正式感的词',
+    templates: [
+      '领域 · 体验派/观察/吐槽/安利',
+      '心情 · 随手记',
+    ],
+    examples: ['随手记 · 体验派', '产品 · 试用吐槽', 'AI · 体验派'],
+  },
+};
+
+const BADGE_GUIDE = (platform) => {
+  const t = PLATFORM_BADGE_TONE[platform];
+  if (!t) {
+    return 'badge: 4-10 字小字分类（顶部 accent 色 + letter-spacing 显示），按内容 category 和平台调性生成。用「·」或「|」分隔两段。';
+  }
+  return [
+    `badge: 4-10 字小字分类（顶部 accent 色 + letter-spacing 显示），用「·」或「|」分隔两段。`,
+    `平台调性：${t.vibe}。${t.forbidden ? `禁止：${t.forbidden}。` : ''}`,
+    `可用模板：${t.templates.join('；')}。`,
+    `示例：${t.examples.join(' / ')}。`,
+  ].join(' ');
+};
 
 function buildUserPrompt(platform, schema, facts, variant) {
   const angle = ANGLES[variant % ANGLES.length];
