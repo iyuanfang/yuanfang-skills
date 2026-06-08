@@ -132,6 +132,7 @@ function buildSystemPrompt(platform, schema) {
     `写作规则：${(schema.rules || []).join('；') || '无'}`,
     `严格禁用：广告法绝对化词（最佳/最/第一/100%等）、AI 味词（震惊、深度、颠覆、绝绝子等）。`,
     BADGE_GUIDE(platform),
+    CTA_GUIDE(platform),
     `输出：合法 JSON，无 markdown 包裹。`,
   ].join('\n');
 }
@@ -213,6 +214,81 @@ const BADGE_GUIDE = (platform) => {
   }
   return [
     `badge: 4-10 字小字分类（顶部 accent 色 + letter-spacing 显示），用「·」或「|」分隔两段。`,
+    `平台调性：${t.vibe}。${t.forbidden ? `禁止：${t.forbidden}。` : ''}`,
+    `可用模板：${t.templates.join('；')}。`,
+    `示例：${t.examples.join(' / ')}。`,
+  ].join(' ');
+};
+
+// 跨平台 CTA 风格化表。
+// CTA 调性 = 「平台读者看到后的反应」。朋友圈写「立即下载」= 硬广，知乎写「戳链接」= 卖货感。
+// 每个平台给 vibe（这条 CTA 在平台上要像什么）+ forbidden（哪种 CTA 在这平台会劝退）+ templates + examples。
+const PLATFORM_CTA_TONE = {
+  xiaohongshu: {
+    vibe: '闺蜜安利的口吻、像「我帮你试过了你去吧」，不强调品牌不强调价格',
+    forbidden: '「立即购买/限时优惠/扫码」这种纯电商 CTA；强促销词',
+    templates: [
+      '戳链接自己看 / 搜「{品牌}」自己试 / 链接放评论区',
+      '姐妹们冲 {品牌} / 真心推荐 / 自用回购',
+      '评论区扣 1 给你链接',
+    ],
+    examples: ['戳链接自己看，0 元起随便试', '搜「AICS」自己上手玩，0 元起', '评论区扣 1 给你入口'],
+  },
+  wechat: {
+    vibe: '编辑式落款、像文章作者的最后一句，常带 → / 「点击」/ 「扫码」',
+    forbidden: '感叹号、emoji 堆砌、限时/抢购',
+    templates: [
+      '点击阅读原文 / 文末扫码 / 戳下方链接',
+      '「立即体验」/ 「免费试用 14 天」',
+      '→ 评论区聊聊 / → 转发给需要的朋友',
+    ],
+    examples: ['立即体验 AI 智能客服，免费试用 14 天', '文末扫码体验，14 天免费', '点击阅读原文 → 14 天免费上手'],
+  },
+  toutiao: {
+    vibe: '短直接、资讯风格、像新闻结尾的一句',
+    forbidden: '长段、感叹号、亲测/姐妹',
+    templates: [
+      '{品牌} 提供 14 天免费试用 / 立即体验',
+      '免费版已开放 / 0 元起',
+    ],
+    examples: ['AICS 提供 14 天免费试用，0 元起步', '免费版已上线，扫码体验'],
+  },
+  zhihu: {
+    vibe: '几乎不写 CTA，最多一句「文末有免费试用入口」点到为止',
+    forbidden: '任何显式购买引导、感叹号、emoji、链接直贴',
+    templates: [
+      '文末有 {品牌} 14 天免费试用入口',
+      '如果正在选型，可以从 {品牌} 入手实测',
+    ],
+    examples: ['文末有 AICS 14 天免费试用入口', '如果正在选型，可以从 AICS 入手实测'],
+  },
+  moments: {
+    vibe: '不写 CTA、像跟朋友聊到这事的自然结尾',
+    forbidden: '任何「立即下载/扫码/加微信/链接」类硬广词',
+    templates: [
+      '不写 CTA，让正文自己停',
+      '需要链接的话评论一下',
+    ],
+    examples: ['', '需要链接的话评论一下', '（结尾自然收，不带 CTA）'],
+  },
+  'weibo-micro': {
+    vibe: '互动钩子、引导评论、像发动态等回复',
+    forbidden: '硬广 CTA、长 URL',
+    templates: [
+      '你怎么看？/ 有没有同感？/ 说说你的经历',
+      '评论区聊聊 / 你用过哪些 {品类} 工具？',
+    ],
+    examples: ['你怎么看？', '你遇到过这种情况吗？', '评论区聊聊你选 {品类} 的标准'],
+  },
+};
+
+const CTA_GUIDE = (platform) => {
+  const t = PLATFORM_CTA_TONE[platform];
+  if (!t) {
+    return 'cta: 一句行动号召。';
+  }
+  return [
+    `cta: 平台风格行动号召。`,
     `平台调性：${t.vibe}。${t.forbidden ? `禁止：${t.forbidden}。` : ''}`,
     `可用模板：${t.templates.join('；')}。`,
     `示例：${t.examples.join(' / ')}。`,
