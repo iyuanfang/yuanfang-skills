@@ -205,45 +205,41 @@ AI 客服正在重新定义企业服务效率
 
 对每个选中的平台，两件事：写 copy.md、render.js 出图。
 
-### 3a.0 自动化路径（推荐）— `generate-copy.js`
+### 3a.0 自动化路径（推荐）— `generate-copy.js` (agent-driven)
 
-`scripts/generate-copy.js` 接 content.md，按平台 schema 批量生成 copy.md 并自动跑 `validate-copy.js` 验证。LLM 命中失败时自动重写（`--auto-rewrite`，最多 3 次）。
+`scripts/generate-copy.js` 解析 content.md + 平台 schema，**打印 system+user prompt 给 agent 读**。agent 用自己的 LLM 写 JSON，agent 把 JSON 写成 copy.md，agent 跑 `validate-copy.js` 验证。**不需要任何外部 API key**——LLM 就是 agent 当前用的那个，零额外成本。
 
-**支持 LLM provider**（按环境变量自动选）：
-
-| Provider | 触发 | 默认模型 |
-|---|---|---|
-| `template` | 无 API key（默认） | 无，纯模板（fallback，输出较机械） |
-| `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` |
-| `anthropic` | `ANTHROPIC_API_KEY` | `claude-haiku-4-5` |
-
-显式指定：`--llm openai`，或环境变量 `CONTENT_GEN_LLM=anthropic`。
-
-**基本用法：**
+**两阶段：**
 
 ```bash
+# 1) 打印 prompt
 node scripts/generate-copy.js \
   --content content.md \
   --platforms xiaohongshu,wechat,toutiao,zhihu,moments,weibo-micro \
-  --output output/20260608_myapp
+  --variants 1 \
+  --print-prompts
 ```
 
-**A/B 变体**：每个平台生成 N 份，写成 `copy.md` + `copy_v2.md` + `copy_v3.md`。
+agent 读每个平台的 `SYSTEM` + `USER` JSON，用 LLM 生成 1 个（或 N 个）JSON 响应，写成 `output/<session>/<platform>/copy.md`（第 2 份起 `copy_v2.md`、`copy_v3.md`）。
 
 ```bash
-node scripts/generate-copy.js --content content.md --platforms xiaohongshu --variants 3
+# 2) 验证每个 copy.md
+node scripts/validate-copy.js output/<session>/xiaohongshu/copy.md
+node scripts/validate-copy.js output/<session>/xiaohongshu/copy_v2.md
 ```
 
-**自动重写**：LLM 模式且校验失败时自动重试（template 模式无意义，跳过）。
+**A/B 变体**：每个平台 N 份，一次性打印 N 组 prompt。
 
 ```bash
-node scripts/generate-copy.js --content content.md --platforms xiaohongshu --auto-rewrite
+node scripts/generate-copy.js --content content.md --platforms xiaohongshu --variants 3 --print-prompts
 ```
+
+**默认（无 `--print-prompts`）**：打印工作流指引（哪几个 platform 目录、写哪里、跑哪个 validate）。
 
 输出格式：
 
 ```
-output/20260608_myapp/
+output/<session>/
 ├── 小红书/copy.md
 ├── 小红书/copy_v2.md          (--variants 2+)
 ├── 公众号/copy.md
@@ -251,6 +247,8 @@ output/20260608_myapp/
 ```
 
 每份 copy.md 走 `validate-copy.js`：合规分 < 35 视为 fail；fail 时 exit code 1，便于 CI 拦截。
+
+**API 给程序用**：`require('./validate-copy')` 暴露 `validateCopyMd / scoreCompliance / loadSchema / parseFrontmatter`，agent 可在 Node 进程内直接调，不走 CLI。
 
 **手工 path**（如果你想自己写）见 3a.1。
 

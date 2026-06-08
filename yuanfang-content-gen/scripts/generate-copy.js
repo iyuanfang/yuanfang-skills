@@ -1,24 +1,35 @@
 #!/usr/bin/env node
+// Build per-platform copy prompts from a content brief + platform schemas.
+// The agent reads the prompts, calls its own LLM, writes copy.md, then
+// runs validate-copy.js to score. No external API key required.
+//
+// Usage:
+//   node scripts/generate-copy.js --content brief.md --platforms xiaohongshu,wechat
+//   node scripts/generate-copy.js --content brief.md --platforms xiaohongshu --variants 3
+//   node scripts/generate-copy.js --content brief.md --platforms xiaohongshu --print-prompts
+//     # agent reads prompts, writes copy.md, then runs:
+//     node scripts/validate-copy.js output/.../xiaohongshu/copy.md
+
 const fs = require('fs');
 const path = require('path');
-const { getProvider, detectProvider } = require('./llm-providers');
-const { validateCopyMd, loadSchema } = require('./validate-copy');
+const { loadSchema } = require('./validate-copy');
+
+const ANGLES = ['真实体验角度', '痛点共鸣角度', '好奇心钩子角度'];
 
 function parseArgs() {
-  const args = { platforms: [], variants: 1, autoRewrite: false };
+  const args = { platforms: [], variants: 1, printPrompts: false };
   const argv = process.argv.slice(2);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if      (a === '--content')       args.content = argv[++i];
-    else if (a === '--platform')      { args.platforms.push(argv[++i]); }
-    else if (a === '--platforms')     { args.platforms = argv[++i].split(',').map(s => s.trim()); }
-    else if (a === '--variants')      { args.variants = parseInt(argv[++i], 10) || 1; }
-    else if (a === '--output')        { args.output = argv[++i]; }
-    else if (a === '--llm')           { args.llm = argv[++i]; }
-    else if (a === '--auto-rewrite')  { args.autoRewrite = true; }
+    if      (a === '--content')      args.content = argv[++i];
+    else if (a === '--platform')     { args.platforms.push(argv[++i]); }
+    else if (a === '--platforms')    { args.platforms = argv[++i].split(',').map(s => s.trim()); }
+    else if (a === '--variants')     { args.variants = parseInt(argv[++i], 10) || 1; }
+    else if (a === '--output')       { args.output = argv[++i]; }
+    else if (a === '--print-prompts'){ args.printPrompts = true; }
     else if (a === '--help' || a === '-h') {
       const text = fs.readFileSync(__filename, 'utf-8');
-      console.log(text.split('\n').slice(1, 16).join('\n'));
+      console.log(text.split('\n').slice(1, 12).join('\n'));
       process.exit(0);
     }
   }
@@ -43,21 +54,10 @@ function parseContentMd(filePath) {
 }
 
 function bodyToFacts(content) {
-  const facts = {
-    title: '',
-    body: content.body,
-    brand_name: '',
-    category: '',
-    point1: '', point2: '', point3: '',
-    cta: '',
-    lead_in: '',
-    pain: '',
-    tags: [],
-  };
-
-  const headings = content.body.split('\n').filter(l => l.startsWith('#')).map(l => l.replace(/^#+\s*/, '').trim());
-  if (headings[0]) facts.title = headings[0];
-  if (!facts.title && content.fm.title) facts.title = content.fm.title;
+  const headings = content.body.split('\n')
+    .filter(l => l.startsWith('#'))
+    .map(l => l.replace(/^#+\s*/, '').trim());
+  const title = headings[0] || content.fm.title || '';
 
   const sections = {};
   let cur = '';
@@ -68,154 +68,98 @@ function bodyToFacts(content) {
   }
   const get = k => (sections[k] || []).join(' ').trim();
 
-  facts.cta = get('CTA') || get('行动号召') || '';
-  facts.brand_name = (content.fm.brand || content.fm.brand_name || get('产品') || '').trim();
-  facts.category = (content.fm.category || '').trim();
+  const points = (sections['要点'] || sections['亮点'] || [])
+    .filter(l => l.trim().startsWith('-'))
+    .map(l => l.replace(/^-\s*/, '').trim());
 
-  const points = (sections['要点'] || sections['亮点'] || []).filter(l => l.trim().startsWith('-')).map(l => l.replace(/^-\s*/, '').trim());
-  facts.point1 = points[0] || '';
-  facts.point2 = points[1] || '';
-  facts.point3 = points[2] || '';
-  if (facts.brand_name) facts.lead_in = `我刚刚体验了 ${facts.brand_name}`;
-  if (facts.brand_name) facts.pain = `${facts.brand_name}用起来很复杂`;
-  if (facts.tags && facts.tags.length) facts.tags = facts.tags;
-  return facts;
+  return {
+    title,
+    brand_name:  content.fm.brand || content.fm.brand_name || get('产品') || '',
+    category:    content.fm.category || '',
+    body:        content.body,
+    cta:         get('CTA') || get('行动号召') || '',
+    point1: points[0] || '',
+    point2: points[1] || '',
+    point3: points[2] || '',
+  };
 }
 
 function buildSystemPrompt(platform, schema) {
   return [
     `你是一名中文 ${platform} 平台的资深内容创作者。`,
-    `你的写作人设：${schema.persona || '专业、克制、有理有据'}`,
-    `你的标题偏好（按平台调性）：${(schema.title_formula || []).join(' | ') || '无'}`,
-    `你的写作规则：${(schema.rules || []).join('；') || '无'}`,
-    `严格要求：禁用广告法绝对化词（最佳/最/第一/100%等），禁用 AI 味词（震惊、深度、颠覆、绝绝子等），标题 ≤ 20 字（小红书）。`,
-    `输出必须是合法 JSON，不要任何解释或 markdown 包裹。`,
+    `人设：${schema.persona || '专业、克制、有理有据'}`,
+    `标题偏好：${(schema.title_formula || []).join(' | ') || '无'}`,
+    `写作规则：${(schema.rules || []).join('；') || '无'}`,
+    `严格禁用：广告法绝对化词（最佳/最/第一/100%等）、AI 味词（震惊、深度、颠覆、绝绝子等）。`,
+    `输出：合法 JSON，无 markdown 包裹。`,
   ].join('\n');
 }
 
+const OUTPUT_SHAPES = {
+  xiaohongshu:   'title, body, tags (3-5 个), cta',
+  wechat:        'title, lead (200 字引子), outline (3-5 条大纲), cta, body (完整文章)',
+  toutiao:       'title, meta (一句话描述), body (300-500 字), cta',
+  zhihu:         'title, body, key_points (3-5 点), cta',
+  moments:       'text (1-3 句, ≤60 字)',
+  'weibo-micro': 'text (140-300 字)',
+};
+
 function buildUserPrompt(platform, schema, facts, variant) {
-  const angles = ['真实体验角度', '痛点共鸣角度', '好奇心钩子角度'];
-  const angle = angles[variant % angles.length];
+  const angle = ANGLES[variant % ANGLES.length];
   return JSON.stringify({
     platform,
-    persona: schema.persona,
+    angle,
+    facts: {
+      title: facts.title,
+      brand: facts.brand_name,
+      category: facts.category,
+      cta: facts.cta,
+      points: [facts.point1, facts.point2, facts.point3].filter(Boolean),
+      body: facts.body,
+    },
     title_formula: schema.title_formula || [],
     rules: schema.rules || [],
-    facts,
-    variant,
-    angle,
-    instruction: `请基于以下事实，生成 ${platform} 平台的文案。角度：${angle}。title 必须从 title_formula 里选一个填具体词，body 真实可信、有人设口吻。`,
-  });
+    output_shape: OUTPUT_SHAPES[platform] || 'title, body, cta',
+  }, null, 2);
 }
 
-function parseJsonFromLlm(text) {
-  let t = text.trim();
-  const fenced = t.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-  if (fenced) t = fenced[1];
-  const start = t.indexOf('{');
-  const end = t.lastIndexOf('}');
-  if (start >= 0 && end > start) t = t.slice(start, end + 1);
-  return JSON.parse(t);
-}
-
-function renderCopyMd(platform, schema, copy) {
-  const fmLines = [`platform: ${platform}`];
-  if (copy.title) fmLines.push(`title: ${copy.title}`);
-  if (copy.cta)   fmLines.push(`cta: ${copy.cta}`);
-  if (copy.meta)  fmLines.push(`meta: ${copy.meta}`);
-  if (copy.tags && copy.tags.length) {
-    fmLines.push('tags:');
-    for (const t of copy.tags) fmLines.push(`  - ${t}`);
-  }
-  if (copy.lead) {
-    fmLines.push('lead: |');
-    for (const l of copy.lead.split('\n')) fmLines.push(`  ${l}`);
-  }
-  if (copy.outline && copy.outline.length) {
-    fmLines.push('outline:');
-    for (const o of copy.outline) fmLines.push(`  - ${o}`);
-  }
-  if (copy.key_points && copy.key_points.length) {
-    fmLines.push('key_points:');
-    for (const k of copy.key_points) fmLines.push(`  - ${k}`);
-  }
-  const body = copy.body || copy.text || '';
-  const fmBlock = ['---', ...fmLines, '---'].join('\n');
-  return `${fmBlock}\n\n${body}\n`;
-}
-
-async function generateOne(provider, platform, content, variant) {
-  const schema = loadSchema(platform);
-  if (!schema) throw new Error(`unknown platform: ${platform}`);
-  const facts = bodyToFacts(content);
-  const system = buildSystemPrompt(platform, schema);
-  const prompt = buildUserPrompt(platform, schema, facts, variant);
-  const text = await provider.complete({ system, prompt, maxTokens: 1500 });
-  return parseJsonFromLlm(text);
-}
-
-async function writeCopyFile(outDir, platform, schema, copy, variant) {
-  fs.mkdirSync(outDir, { recursive: true });
-  const filename = variant > 0 ? `copy_v${variant + 1}.md` : 'copy.md';
-  const filePath = path.join(outDir, filename);
-  fs.writeFileSync(filePath, renderCopyMd(platform, schema, copy), 'utf-8');
-  return filePath;
-}
-
-async function main() {
+function main() {
   const args = parseArgs();
   const content = parseContentMd(args.content);
-  const provider = getProvider({ name: args.llm });
-  console.error(`[generate-copy] llm=${provider.name}  variants=${args.variants}  autoRewrite=${args.autoRewrite}`);
-  console.error(`[generate-copy] content: ${args.content}`);
+  const facts = bodyToFacts(content);
 
-  const sessionDir = args.output || path.join(path.dirname(args.content), 'output');
-  fs.mkdirSync(sessionDir, { recursive: true });
-
-  let totalOk = 0, totalFail = 0;
-
-  for (const platform of args.platforms) {
-    const outDir = path.join(sessionDir, platform);
-    console.error(`\n[${platform}] generating ${args.variants} variant(s)…`);
-
-    for (let v = 0; v < args.variants; v++) {
-      let copy, filePath, result;
-      let attempts = 0;
-      const maxAttempts = args.autoRewrite && provider.name !== 'template' ? 3 : 1;
-
-      while (attempts < maxAttempts) {
-        attempts++;
-        try {
-          copy = await generateOne(provider, platform, content, v);
-          filePath = await writeCopyFile(outDir, platform, loadSchema(platform), copy, v);
-          result = validateCopyMd(filePath);
-          if (result.ok) break;
-          if (attempts < maxAttempts) {
-            console.error(`  ⚠ v${v + 1} attempt ${attempts} failed validation: ${result.errors[0]}. retrying…`);
-          }
-        } catch (e) {
-          if (attempts >= maxAttempts) {
-            console.error(`  ✗ v${v + 1} ERROR: ${e.message.slice(0, 120)}`);
-            totalFail++;
-            break;
-          }
-          console.error(`  ⚠ v${v + 1} attempt ${attempts} threw: ${e.message.slice(0, 80)}. retrying…`);
-        }
+  if (args.printPrompts) {
+    for (const platform of args.platforms) {
+      const schema = loadSchema(platform);
+      if (!schema) {
+        console.error(`! unknown platform: ${platform}`);
+        continue;
       }
-
-      if (result && result.ok) {
-        console.error(`  ✓ v${v + 1} ${path.basename(filePath)} — ${result.score.total}/${result.score.max}`);
-        if (result.warnings.length) console.error(`    ⚠ ${result.warnings[0]}`);
-        totalOk++;
-      } else if (result) {
-        console.error(`  ✗ v${v + 1} ${path.basename(filePath)} — ${result.errors.join('; ')}`);
-        totalFail++;
+      console.log(`\n========== ${platform} (${args.variants} variant${args.variants > 1 ? 's' : ''}) ==========`);
+      for (let v = 0; v < args.variants; v++) {
+        console.log(`\n----- variant ${v + 1} -----`);
+        console.log('SYSTEM:');
+        console.log(buildSystemPrompt(platform, schema));
+        console.log('\nUSER:');
+        console.log(buildUserPrompt(platform, schema, facts, v));
       }
     }
+    return;
   }
 
-  console.error(`\n[generate-copy] done: ${totalOk} ok, ${totalFail} failed`);
-  process.exit(totalFail > 0 ? 1 : 0);
+  const outDir = args.output || path.join(path.dirname(args.content), 'output');
+  fs.mkdirSync(outDir, { recursive: true });
+  for (const p of args.platforms) fs.mkdirSync(path.join(outDir, p), { recursive: true });
+
+  console.log(`# generate-copy — agent-driven`);
+  console.log(`content: ${args.content}`);
+  console.log(`platforms: ${args.platforms.join(', ')}`);
+  console.log(`variants per platform: ${args.variants}`);
+  console.log(`output: ${outDir}`);
+  console.log(`\n# To generate, run with --print-prompts and feed each prompt to your LLM.`);
+  console.log(`# Then write the LLM's JSON output as copy.md in each platform dir.`);
+  console.log(`# Finally validate:`);
+  console.log(`for p in ${args.platforms.map(p => `${outDir}/${p}`).join(' ')}; do node scripts/validate-copy.js $p/copy.md; done`);
 }
 
 if (require.main === module) main();
