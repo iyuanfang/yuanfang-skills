@@ -6,6 +6,7 @@
 /yuanfang-html-image/output/
 /yuanfang-html-ppt/tests/output/
 /yuanfang-design/showcase/output/
+/yuanfang-design/gallery/
 /yuanfang-html-image/tests/.visual-tmp/
 /yuanfang-html-image/tests/.animation-out/
 /yuanfang-html-ppt/tests/visual-baselines/*.pptx

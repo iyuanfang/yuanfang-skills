@@ -6,7 +6,7 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const RENDER_MODULE = require(path.join(REPO_ROOT, 'yuanfang-html-image/scripts/render.js'));
 const { listThemes, loadTheme, loadBaseCSS, loadLayout, assembleHTML } = RENDER_MODULE;
 
-const OUTPUT_DIR = '/tmp/yuanfang-gallery';
+const OUTPUT_DIR = path.join(REPO_ROOT, 'yuanfang-design', 'gallery');
 const PREVIEWS_DIR = path.join(OUTPUT_DIR, 'previews');
 
 const ACCENTS = [
@@ -170,8 +170,10 @@ function main() {
 
   fs.writeFileSync(path.join(OUTPUT_DIR, 'index.html'), indexHtml, 'utf-8');
 
-  console.log(`\n✅ Gallery: file://${path.join(OUTPUT_DIR, 'index.html')}`);
+  const relativePath = path.relative(REPO_ROOT, path.join(OUTPUT_DIR, 'index.html'));
+  console.log(`\n✅ Gallery: ${relativePath}`);
   console.log(`   ${successCount} previews generated, ${errorCount} errors`);
+  console.log(`   Open:  xdg-open ${relativePath}  (or just cd to it)`);
 }
 
 main();

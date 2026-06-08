@@ -6,7 +6,9 @@
   "scripts": {
     "test": "node --test 'yuanfang-design/tests/*.test.js' 'yuanfang-html-image/tests/*.test.js' 'yuanfang-html-ppt/tests/unit/*.test.js' 'yuanfang-html-ppt/tests/integration/*.test.js'",
     "render": "node yuanfang-html-image/scripts/render.js",
-    "ppt": "node yuanfang-html-ppt/scripts/render.js",
+    "ppt": "node yuanfang-html-ppt/scripts/render-html-pptx.js",
+    "gallery": "node scripts/generate-gallery.js",
+    "components": "node scripts/generate-components.js",
     "showcase": "node yuanfang-design/showcase/generate.js"
   },
   "dependencies": {
