@@ -7,6 +7,7 @@ const SCRIPT_DIR = __dirname;
 const REPO_ROOT = path.join(SCRIPT_DIR, '..', '..');
 const DESIGN_DIR = path.join(REPO_ROOT, 'yuanfang-design');
 const BASE_CSS_PATH = path.join(DESIGN_DIR, 'base.css');
+const PARAMS_CSS_PATH = path.join(DESIGN_DIR, 'params.css');
 const THEMES_DIR = path.join(DESIGN_DIR, 'themes');
 const LAYOUTS_DIR = path.join(DESIGN_DIR, 'layout-types');
 
@@ -65,12 +66,17 @@ function loadBaseCSS() {
   return fs.readFileSync(BASE_CSS_PATH, 'utf-8');
 }
 
+function loadParamsCSS() {
+  if (!fs.existsSync(PARAMS_CSS_PATH)) return '';
+  return fs.readFileSync(PARAMS_CSS_PATH, 'utf-8');
+}
+
 function extractThemeDefault(themeCSS, varName) {
   const m = themeCSS.match(new RegExp(`--${varName}:\\s*"?([^";]+)"?`));
   return m ? m[1].trim() : '';
 }
 
-function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080, brandOverrideCss = '' }) {
+function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080, brandOverrideCss = '', params = {} }) {
   const brandHtml = content.brandImage
     ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
     : '';
@@ -91,8 +97,9 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
     body = body.split(k).join(v);
   }
   const direction = detectDirection(content.title, content.body);
+  const dataAttrs = buildDataAttributes(themeName, params);
   return `<!DOCTYPE html>
-<html lang="${direction.lang}" dir="${direction.dir}" data-theme="${themeName}">
+<html lang="${direction.lang}" dir="${direction.dir}"${dataAttrs}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=${width}, height=${height}">
@@ -100,6 +107,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
 <style>
 ${baseCSS}
 ${themeCSS}
+${loadParamsCSS()}
 ${brandOverrideCss}
 body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: hidden; }
 .cover { width: ${width}px; height: ${height}px; }
@@ -134,7 +142,29 @@ function renderHTML(layoutHTML, content, config, platform) {
     content,
     width: platform.width,
     height: platform.height,
+    params: config.params || {},
   });
+}
+
+const VALID_ACCENTS = ['indigo', 'emerald', 'rose', 'amber', 'slate'];
+const VALID_TYPES = ['sans', 'serif', 'mono'];
+const VALID_DENSITIES = ['airy', 'normal', 'dense'];
+const VALID_DECORS = ['plain', 'subtle', 'bold'];
+
+const PARAM_VALIDATORS = {
+  accent: VALID_ACCENTS,
+  type: VALID_TYPES,
+  density: VALID_DENSITIES,
+  decor: VALID_DECORS,
+};
+
+function buildDataAttributes(themeName, params) {
+  const attrs = [`data-theme="${themeName}"`];
+  for (const [k, valid] of Object.entries(PARAM_VALIDATORS)) {
+    const v = params[k];
+    if (v && valid.includes(v)) attrs.push(`data-${k}="${v}"`);
+  }
+  return ' ' + attrs.join(' ');
 }
 
 function parseArgs(argv) {
@@ -423,17 +453,31 @@ function main() {
   const layoutHTML = loadLayout(layout);
   const brandOverrideCss = buildBrandOverrideCss(spec, theme);
 
+  const params = {
+    accent: args.accent,
+    type: args.type,
+    density: args.density,
+    decor: args.decor,
+  };
+  for (const [k, v] of Object.entries(params)) {
+    if (v && !PARAM_VALIDATORS[k].includes(v)) {
+      console.error(`warning: invalid --${k}="${v}", ignoring (valid: ${PARAM_VALIDATORS[k].join(', ')})`);
+      params[k] = undefined;
+    }
+  }
+
   const platforms = resolvePlatforms(args);
   const outputDir = resolveOutputDir(content, args);
   fs.mkdirSync(outputDir, { recursive: true });
 
-  console.log(`\nTheme: ${theme}    Layout: ${layout}`);
+  const paramSummary = Object.entries(params).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(' ');
+  console.log(`\nTheme: ${theme}    Layout: ${layout}${paramSummary ? '   ' + paramSummary : ''}`);
   console.log(`Content: ${content.title || '(no title)'}`);
   console.log(`Output:  ${outputDir}\n`);
 
   for (const platform of platforms) {
     const html = assembleHTML({
-      themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged, brandOverrideCss,
+      themeName: theme, themeCSS, baseCSS, layoutHTML, content: merged, brandOverrideCss, params,
       width: platform.width, height: platform.height,
     });
 
