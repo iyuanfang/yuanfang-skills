@@ -4,7 +4,7 @@
   --bg: #FAFAFA;
   --text: #1A1A2E;
   --accent: #4F46E5;
-  --secondary: #9CA3AF;
+  --secondary: #6B7280;
   --bg-alt: #F3F4F6;
   /* Surface hierarchy (required by yuanfang-design tokens) */
   --surface: #FFFFFF;
@@ -18,11 +18,11 @@
   --font-title: system-ui, -apple-system, "PingFang SC", "Outfit", "Inter", sans-serif;
   --font-body:  system-ui, -apple-system, "PingFang SC", "Inter", sans-serif;
 
-  --title-size-v: 72px;
-  --title-size-s: 60px;
-  --title-size-w: 52px;
-  --title-size-c: 42px;
-  --content-size: 20px;
+  --title-size-v: 88px;
+  --title-size-s: 72px;
+  --title-size-w: 64px;
+  --title-size-c: 50px;
+  --content-size: 26px;
   --qr-size: 64px;
 
   --decor-tl: none;

@@ -18,6 +18,8 @@ const ALL_PLATFORMS = {
   'moments':          { id: 'moments',          width: 1080, height: 1080, label: '朋友圈' },
   'weibo':            { id: 'weibo',            width: 1080, height: 608,  label: '微博' },
   'toutiao':          { id: 'toutiao',          width: 1080, height: 500,  label: '头条号' },
+  'weibo-micro':      { id: 'weibo-micro',      width: 1080, height: 608,  label: '微头条' },
+  'zhihu-cover':      { id: 'zhihu-cover',      width: 1200, height: 630,  label: '知乎封面' },
   'douyin-cover':     { id: 'douyin-cover',     width: 1080, height: 1920, label: '抖音封面' },
   'bilibili-cover':   { id: 'bilibili-cover',   width: 1920, height: 1080, label: 'B站封面' },
   'twitter':          { id: 'twitter',          width: 1200, height: 675,  label: 'Twitter/X' },

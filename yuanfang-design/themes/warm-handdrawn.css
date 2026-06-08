@@ -3,8 +3,8 @@
 [data-theme="warm-handdrawn"] {
   --bg: #FDF6EC;
   --text: #3D2B1F;
-  --accent: #D97706;
-  --secondary: #A0896B;
+  --accent: #B45309;
+  --secondary: #7A6548;
   --bg-alt: #FFFFFF;
   /* Surface hierarchy (required by yuanfang-design tokens) */
   --surface: #FFFFFF;

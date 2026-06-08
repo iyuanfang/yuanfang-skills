@@ -169,9 +169,12 @@
 .cover__points li {
   font-size: calc(var(--content-size) - 8px);
   color: var(--accent);
-  padding: var(--space-1) var(--space-2);
-  border-top: 1px solid var(--accent);
-  opacity: 0.85;
+  padding: var(--space-1) var(--space-3);
+  border: none;
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg));
+  border-radius: 999px;
+  font-weight: 500;
+  opacity: 1;
 }
 .cover__points:empty { display: none; }
 
@@ -240,7 +243,7 @@
 .cover__accent-block {
   position: absolute;
   right: 0; top: 0; bottom: 0;
-  width: 24%;
+  width: var(--accent-block-width, 24%);
   background: var(--accent);
   display: var(--accent-block);
 }

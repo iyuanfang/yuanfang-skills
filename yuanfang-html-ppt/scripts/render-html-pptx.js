@@ -18,7 +18,6 @@ const { loadContent } = require('./load-content');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const DESIGN_DIR = path.join(ROOT, 'yuanfang-design');
-
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function readFile(p) {
@@ -488,7 +487,7 @@ html,body{width:100%;background:#1a1a1a;font-family:var(--font-sans)}
 `;
 
   return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="${theme}">
 <head><meta charset="utf-8"><meta name="viewport" content="width=1920">
 <title>Slide Deck</title>
 <style>

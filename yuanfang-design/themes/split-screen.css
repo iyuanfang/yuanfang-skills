@@ -4,7 +4,7 @@
   --bg: #FFFFFF;
   --text: #0F172A;
   --accent: #4F46E5;
-  --secondary: #94A3B8;
+  --secondary: #64748B;
   --bg-alt: #EEF2FF;
   /* Surface hierarchy (required by yuanfang-design tokens) */
   --surface: #FFFFFF;
@@ -32,6 +32,7 @@
 
   --accent-line: none;
   --accent-block: block;
+  --accent-block-width: 50%;
   --terminal-bar: none;
   --grid-bg: none;
   --seal: "";
