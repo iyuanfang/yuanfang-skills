@@ -5,7 +5,20 @@ A collection of design + content skills for AI agents. Currently includes:
 - **`yuanfang-design/`** — Shared design system (CSS token variables, 18 themes, layout blocks)
 - **`yuanfang-html-image/`** — Generate social media images from text via HTML + Playwright
 - **`yuanfang-html-ppt/`** — Generate .pptx presentations from content.yaml (14 layouts, single dom-to-pptx engine)
-- **`yuanfang-content-gen/`** — Multi-platform content generator: content.md → platform copy + images
+- **`yuanfang-content-gen/`** — Multi-platform content generator: brief → copy.md + content.json (纯文案，不出图)
+- **`yuanfang-content-suite/`** — 组合层 skill (0 代码)，串起 content-gen + html-image 走完整套多平台内容生产
+
+## 职责分离 (4-层架构)
+
+| Skill | 职责 | 输入 | 输出 |
+|---|---|---|---|
+| yuanfang-content-gen | 多平台文案 + 合规 | brief.md | copy.md + content.json |
+| yuanfang-html-image | 静态图渲染 | content.json | PNG |
+| yuanfang-html-ppt | PPT 演示 | content.yaml | .pptx |
+| yuanfang-content-suite | 组合 (无代码) | 用户的请求 | 调用上面 3 个 |
+
+普通用户：装全部 4 个 + design。
+高级用户：只装自己需要的那 1-2 个。
 
 ## 安装 (OpenCode / Claude Code)
 
@@ -24,18 +37,20 @@ npx playwright install chromium
 
 **OpenCode:**
 ```bash
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design     ~/.config/opencode/skills/yuanfang-design
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image ~/.config/opencode/skills/yuanfang-html-image
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.config/opencode/skills/yuanfang-html-ppt
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen ~/.config/opencode/skills/yuanfang-content-gen
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design         ~/.config/opencode/skills/yuanfang-design
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image     ~/.config/opencode/skills/yuanfang-html-image
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt       ~/.config/opencode/skills/yuanfang-html-ppt
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen    ~/.config/opencode/skills/yuanfang-content-gen
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-suite  ~/.config/opencode/skills/yuanfang-content-suite
 ```
 
 **Claude Code:**
 ```bash
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design     ~/.claude/skills/yuanfang-design
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image ~/.claude/skills/yuanfang-html-image
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt   ~/.claude/skills/yuanfang-html-ppt
-ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen ~/.claude/skills/yuanfang-content-gen
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design         ~/.claude/skills/yuanfang-design
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image     ~/.claude/skills/yuanfang-html-image
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt       ~/.claude/skills/yuanfang-html-ppt
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen    ~/.claude/skills/yuanfang-content-gen
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-suite  ~/.claude/skills/yuanfang-content-suite
 ```
 
 **Codex:**
