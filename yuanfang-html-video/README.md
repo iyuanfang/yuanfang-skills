@@ -1,38 +1,63 @@
 # yuanfang-html-video
 
-视频生成 skill（占位 SOP，未实现）。15-60s 抖音/视频号/朋友圈视频。
+视频生成 skill。15-60s 抖音/视频号/朋友圈/B站/YouTube 视频。**软依赖 ffmpeg**（用户系统装；脚本检测不到会清晰报错）。
 
 ## 快速开始
 
-### 1. 装
+### 1. 装 ffmpeg（一次）
+
+```bash
+# macOS
+brew install ffmpeg
+
+# Ubuntu
+sudo apt install ffmpeg
+
+# 验证
+ffmpeg -version
+```
+
+或 `npm install ffmpeg-static`（项目级，5MB+，慢）。
+
+### 2. 装 skill
 
 ```bash
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-video ~/.config/opencode/skills/yuanfang-html-video
 ```
 
-### 2. OpenCode session 里
+### 3. 跑
 
-> "用 yuanfang-html-video 给 AICS 做 1 个 30s 抖音视频"
+```bash
+node yuanfang-html-video/scripts/render.js \
+  --file output/AICS/小红书/content.json \
+  --platform douyin --duration 15
+```
 
-agent 加载本 SKILL.md，按平台规格跑视频生成（后端选型后填充）。
+输出 `output/AICS/小红书/视频_douyin.mp4`。
 
-## 现状
+## 支持的平台
 
-⚠️ **占位 SOP**。scripts/render.js 暂未实现。后端选型未定（ffmpeg / 剪映 / 可灵）。
+| Key | 比例 | 时长建议 |
+|---|---|---|
+| `douyin` | 9:16 (1080x1920) | 15-60s |
+| `shipinhao` / `wechat-video` | 9:16 (1080x1920) | 15-60s |
+| `moments-video` | 1:1 (1080x1080) | <15s |
+| `xhs-video` | 3:4 (1080x1440) | 30-90s |
+| `bilibili` | 16:9 (1920x1080) | 1-5min+ |
+| `youtube` | 16:9 (1920x1080) | 1min+ |
 
-## 动图（CSS / GIF / WebP）去哪？
+## 动图去哪？
 
-→ **`yuanfang-html-image`**。动图不需要音频轨 + 视频引擎，仍属 image 范畴。
+→ `yuanfang-html-image`。动图不需要音频，仍属 image 范畴。
 
 ## 文件结构
 
 ```
 yuanfang-html-video/
-├── SKILL.md                ← 本文件
-├── README.md               ← 入口
-├── references/             ← 待补 (各平台视频规格)
-│   └── platform-specs.md
-├── scripts/                ← 待建
-│   └── render.js
+├── SKILL.md                ← SOP
+├── README.md               ← 本文件
+├── scripts/
+│   └── render.js           ← ffmpeg pipeline
+├── references/             ← 待补
 └── examples/               ← 待补
 ```

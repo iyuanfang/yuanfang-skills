@@ -1,13 +1,13 @@
 ---
 name: yuanfang-html-video
 description: |
-  视频生成 skill (占位 SOP，未实现)。把 content.json / video brief → mp4。
+  视频生成 skill。把 content.json / video brief → mp4。
   与 yuanfang-html-image 平级，专做"有音频轨 + 视频引擎"的视频（15s+ 抖音/视频号/朋友圈视频）。
   动图 (CSS / GIF / WebP) 不在此处，去 yuanfang-html-image。
-  计划后端：ffmpeg / 剪映 SDK / 可灵 API。
+  后端：ffmpeg (软依赖，用户系统装；npm 也有 ffmpeg-static 可选)。
 ---
 
-# yuanfang-html-video — 视频生成 (占位 SOP)
+# yuanfang-html-video — 视频生成
 
 ## 职责边界
 
@@ -21,7 +21,7 @@ description: |
 - 不写文案（→ yuanfang-content-gen）
 - 不出图（→ yuanfang-html-image，含动图）
 - 不调 LLM API
-- 暂不调任何平台 SDK（占位 SOP，等选型）
+- 不发平台（→ yuanfang-media-publish）
 
 ## 输入 / 输出
 
@@ -33,21 +33,17 @@ description: |
 - `output/<session>/<平台>/video.mp4`（15-60s）
 - 可选 `video.srt`（字幕）
 
-## 计划后端（未实现，仅选型参考）
+## 后端
 
-| 后端 | 类型 | 优劣 |
-|---|---|---|
-| ffmpeg | 本地 CLI | 完全可控，0 成本；要自己写转场/字幕脚本 |
-| 剪映 SDK / OpenAPI | 云 | 模板丰富；要企业认证 |
-| 可灵 / 即梦 / Pika | AI 生成 | 文生视频；适合抽象场景；贵 |
-| MoneyPrinterPlus | 本地编排 | 已有开源（6.5k★），开箱即用但定制弱 |
+**ffmpeg**（软依赖，不强制打包）：
+- 完全可控 / 0 成本 / 不需企业认证 / 模板丰富
+- 不打包进 npm 原因：ffmpeg-static ~50MB，install 太慢
+- 检测顺序：`require('ffmpeg-static')` → 系统 `ffmpeg` PATH
+- 检测不到 → 清晰报错并 exit 1，告诉用户怎么装
 
-**选型建议**（未定）：
-- 普通营销视频 15-30s → ffmpeg + 模板转场（成本低）
-- 抽象/创意视频 30s+ → 可灵 AI 生成
-- 真人讲解/口播 → 剪映 SDK
+**未来可加**：剪映 SDK / 可灵（如果要 AI 文生视频）
 
-## 平台 × 时长矩阵（计划）
+## 平台 × 时长矩阵
 
 | 平台 | 推荐时长 | 比例 | 特殊 |
 |---|---|---|---|
@@ -57,6 +53,24 @@ description: |
 | 小红书视频 | 30-90s | 9:16 / 3:4 | 必带封面图 |
 | B站 | 1-5min+ | 16:9 | 接受长视频；可分章节 |
 | YouTube | 1min+ | 16:9 | 标题/描述/缩略图 |
+
+## 用法
+
+```bash
+# 最简
+node scripts/render.js \
+  --file output/AICS/小红书/content.json \
+  --platform douyin --duration 15
+
+# 加 BGM
+node scripts/render.js --file content.json --platform douyin --duration 30 --bgm /path/to/music.mp3
+
+# 高帧率
+node scripts/render.js --file content.json --platform bilibili --duration 60 --fps 30
+
+# 短视频（5s）
+node scripts/render.js --file content.json --platform moments-video --duration 5
+```
 
 ## 串行模板（agent 怎么跑）
 
@@ -68,9 +82,13 @@ Step 1  加载 yuanfang-html-video SKILL.md
         - 用现成 PNG 做幻灯片，还是 AI 文生视频？
         - 字幕？
 
-Step 2  [占位] 暂未实现
-        等后端选型后填充：
-        node scripts/render.js --file content.json --platform douyin --duration 30
+Step 2  调 scripts/render.js
+        检测 ffmpeg 软依赖 → 缺就给清晰错误并教装
+        截 N 帧（每帧一个 wait 累加，模拟 CSS 动画进度）
+        PNG → JPG 转换（sharp，ffmpeg 编 JPG 比 PNG 快 5-10x）
+        ffmpeg 合成 mp4（H.264 / yuv420p / CRF 23 / preset medium）
+
+Step 3  总结输出 + 给用户发布清单
 ```
 
 ## 何时用
@@ -85,8 +103,8 @@ Step 2  [占位] 暂未实现
 
 ## 后续
 
-- [ ] 选型后端（推荐 ffmpeg 起步）
-- [ ] scripts/render.js 实现
-- [ ] 抖音 9:16 / 视频号 / B站 16:9 / 朋友圈 1:1 模板
+- [x] 选型 ffmpeg
+- [x] scripts/render.js 实现
+- [x] 抖音 9:16 / 视频号 / B站 16:9 / 朋友圈 1:1 模板
 - [ ] 字幕生成（STT 或手工）
-- [ ] references/platform-specs.md（各平台视频规格）
+- [ ] references/platform-specs.md（各平台视频规格详细）
