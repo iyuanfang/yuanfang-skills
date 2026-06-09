@@ -12,51 +12,84 @@ ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-media-publish ~/.config/opencod
 
 ### 2. 准备凭证
 
-按 [references/credentials-setup.md](references/credentials-setup.md)（待补）配各平台：
+按 [references/credentials-setup.md](references/credentials-setup.md) 配各平台。完整模板见 `publish-credentials.example.json`：
+
+```bash
+cp yuanfang-media-publish/publish-credentials.example.json \
+   ~/.config/opencode/publish-credentials.json
+chmod 600 ~/.config/opencode/publish-credentials.json
+# 填入真实凭证
+```
+
+凭证结构（小红书 / 朋友圈 / 视频号不在内，由其它通道管理）：
 
 ```json
-// ~/.config/opencode/publish-credentials.json
 {
-  "wechat":  { "appId": "...", "appSecret": "..." },
-  "toutiao": { "token": "..." },
-  "zhihu":   { "oauth": "..." },
-  "bilibili":{ "accessToken": "..." },
-  "douyin":  { "clientKey": "...", "clientSecret": "..." }
+  "wechat":   { "appId": "...", "appSecret": "..." },
+  "toutiao":  { "token": "..." },
+  "zhihu":    { "oauth": "..." },
+  "bilibili": { "appKey": "...", "appSecret": "...", "accessToken": "..." },
+  "douyin":   { "clientKey": "...", "clientSecret": "...", "accessToken": "..." }
 }
 ```
 
-小红书 / 朋友圈走 MCP / 浏览器，凭证由各自通道管理。
+### 3. CLI 直接发
 
-### 3. OpenCode session 里
+```bash
+# 公众号：写到草稿箱（不自动群发），登录后台预览
+node yuanfang-media-publish/scripts/publish-api.js \
+  --platform wechat \
+  --input output/2026AICS/公众号/
 
-> "用 yuanfang-media-publish 把 output/20260608_AICS/ 全部发出去"
+# 头条：写 token 完整 HTTP 调用（框架已就位，等待实现）
+node yuanfang-media-publish/scripts/publish-api.js \
+  --platform toutiao \
+  --input output/2026AICS/头条/
+
+# 查看所有参数
+node yuanfang-media-publish/scripts/publish-api.js --help
+```
+
+### 4. OpenCode session 里
+
+> "用 yuanfang-media-publish 把 output/2026AICS/ 全部发出去"
 
 agent 加载本 SKILL.md，按平台矩阵调对应通道。
 
 ## 平台通道速查
 
-| 平台 | 通道 | 模式 |
-|---|---|---|
-| 微信公众号 | 公众号 API | 自动 |
-| 小红书 | xiaohongshu-mcp | 半自动 |
-| 头条 | 头条号 API | 自动 |
-| 知乎 | 知乎 API | 自动 |
-| 微头条 | 头条号 API | 自动 |
-| 朋友圈 | 微信 PC | 人工指引 |
-| B站 | B站开放平台 | 自动 |
-| 抖音 | 抖音开放平台 | 自动 |
+| 平台 | 通道 | 模式 | 状态 |
+|---|---|---|---|
+| 微信公众号 | 公众号 API | 自动（草稿箱） | ✅ 已实现 |
+| 小红书 | xiaohongshu-mcp | 半自动 | cookie 由 MCP 管 |
+| 头条 | 头条号 API | 自动 | 🟡 框架已就位 |
+| 知乎 | 知乎 API | 自动 | 🟡 框架已就位 |
+| 微头条 | 头条号 API（同头条） | 自动 | 🟡 框架已就位 |
+| 朋友圈 | 微信 PC | 人工指引 | 无 API |
+| B站 | B站开放平台 | 自动 | 🟡 框架已就位 |
+| 抖音 | 抖音开放平台 | 自动 | 🟡 框架已就位 |
+| 视频号 | 微信视频号 API | 自动 | 待补 |
 
 ## 文件结构
 
 ```
 yuanfang-media-publish/
-├── SKILL.md                    ← 本文件
-├── README.md                   ← 入口
-├── scripts/                    ← 各通道包装 (待实现)
-│   ├── publish-api.js          ← 统一 API 通道
-│   └── publish-mcp.js          ← 小红书 MCP 通道
-├── references/                 ← 详细文档
-│   ├── platform-strategies.md  ← 限流/避坑
-│   └── credentials-setup.md    ← 凭证配法
-└── examples/                   ← 真实发布记录
+├── SKILL.md                                ← 本 skill 入口
+├── README.md                               ← 你正在读的
+├── publish-credentials.example.json        ← 凭证模板（cp 到 ~/.config/opencode/）
+├── scripts/                                ← 各通道包装
+│   ├── publish-api.js                      ← 统一 API 通道（公众号/头条/知乎/B站/抖音）
+│   └── publish-mcp.js                      ← 小红书 MCP 通道（待实现）
+├── references/                             ← 详细文档
+│   ├── platform-strategies.md              ← 限流/避坑（待补）
+│   └── credentials-setup.md                ← 凭证配法（已补）
+└── examples/                               ← 真实发布记录（待补）
 ```
+
+## 设计原则
+
+- **零依赖**：只跑 node 标准库，clone 仓库即可用
+- **草稿箱优先**：公众号默认写草稿不自动群发，误操作零成本
+- **失败保资源**：发布失败时输入文件原样保留，修复后可重试
+- **429 友好**：自动指数 backoff 重试 3 次（1s/2s/4s），不打死 API
+- **状态透明**：`pending` 退出 0 表示"准备就绪但未实现"，agent 能区分成功 / 待补
