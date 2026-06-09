@@ -123,14 +123,20 @@ ${body}
 </html>`;
 }
 
-// 内置 5 种 keyframes 库。animation=<name> 时注入。CSS only，无 JS。
-// 选这 5 种因为：(1) 通用 (2) 跟 yuanfang 现有 accent-line/accent-block 风格搭 (3) 不依赖 JS 也能在 Playwright 单帧截图里看到完整状态。
+// 内置 10 种 keyframes 库。animation=<name> 时注入。CSS only，无 JS。
+// 选这 10 种因为：(1) 通用 (2) 跟 yuanfang 现有 accent-line/accent-block 风格搭 (3) 不依赖 JS 也能在 Playwright 单帧截图里看到完整状态。
+// 风格覆盖：tech 风格（fade/zoom） / 轻量（slide/bounce） / 持续（breathe/pulse/gradient） / 文字（typewriter）。
 const ANIMATION_PRESETS = {
   'fade-in':     '@keyframes yuanfang-fade-in { from { opacity: 0 } to { opacity: 1 } } .is-animating--fade-in .cover > * { animation: yuanfang-fade-in 600ms ease-out both; }',
   'slide-up':    '@keyframes yuanfang-slide-up { from { opacity: 0; transform: translateY(40px) } to { opacity: 1; transform: translateY(0) } } .is-animating--slide-up .cover > * { animation: yuanfang-slide-up 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
   'zoom-in':     '@keyframes yuanfang-zoom-in { from { opacity: 0; transform: scale(0.9) } to { opacity: 1; transform: scale(1) } } .is-animating--zoom-in .cover > * { animation: yuanfang-zoom-in 600ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
   'breathe':     '@keyframes yuanfang-breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.03) } } .is-animating--breathe .cover__accent-block { animation: yuanfang-breathe 2.4s ease-in-out infinite; }',
   'pulse-qr':    '@keyframes yuanfang-pulse-qr { 0%, 100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.06); opacity: 0.85 } } .is-animating--pulse-qr .cover__qr { animation: yuanfang-pulse-qr 1.6s ease-in-out infinite; transform-origin: center; }',
+  'slide-in-left':  '@keyframes yuanfang-slide-in-left  { from { opacity: 0; transform: translateX(-60px) } to { opacity: 1; transform: translateX(0) } } .is-animating--slide-in-left .cover > * { animation: yuanfang-slide-in-left 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
+  'slide-in-right': '@keyframes yuanfang-slide-in-right { from { opacity: 0; transform: translateX(60px)  } to { opacity: 1; transform: translateX(0)  } } .is-animating--slide-in-right .cover > * { animation: yuanfang-slide-in-right 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
+  'bounce-in':   '@keyframes yuanfang-bounce-in { 0% { opacity: 0; transform: scale(0.6) } 60% { opacity: 1; transform: scale(1.08) } 80% { transform: scale(0.96) } 100% { transform: scale(1) } } .is-animating--bounce-in .cover > * { animation: yuanfang-bounce-in 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }',
+  'typewriter':  '@keyframes yuanfang-typewriter { from { width: 0; opacity: 0 } to { width: 100%; opacity: 1 } } .is-animating--typewriter .cover__title { display: inline-block; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--accent); animation: yuanfang-typewriter 1.2s steps(20, end) both, yuanfang-blink-caret 0.8s step-end infinite; } @keyframes yuanfang-blink-caret { 50% { border-color: transparent } }',
+  'gradient-shift': '@keyframes yuanfang-gradient-shift { 0% { background-position: 0% 50% } 50% { background-position: 100% 50% } 100% { background-position: 0% 50% } } .is-animating--gradient-shift .cover__accent-line { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 30%, white), var(--accent)); background-size: 200% 100%; animation: yuanfang-gradient-shift 4s ease infinite; }',
 };
 
 function animationKeyframesCss() {
