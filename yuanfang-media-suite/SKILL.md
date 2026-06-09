@@ -68,3 +68,23 @@ Step 5  总结 output/<session>/ 目录 + 给用户一份发布清单
 ❌ 只想出图、写好了 copy.md → 直接用 yuanfang-html-image
 ❌ 只想写文案、不出图 → 直接用 yuanfang-content-gen
 ❌ 只想发布、写好了 PNG → 直接用 yuanfang-media-publish
+
+---
+
+## 动图去哪？（决策表）
+
+"动图"在 yuanfang 体系里是 3 种东西，**分界线是"是否需要音频轨 + 视频引擎"**：
+
+| 动图类型 | 例子 | 格式 | 归属 skill | 现状 |
+|---|---|---|---|---|
+| **A. CSS 动效** | 入场动画、悬浮、过渡、轮播 | PNG 序列 / SVG 动画 / Lottie | `yuanfang-html-image` | 已支持（--animation 旗 + base.css keyframes, 计划中） |
+| **B. GIF / WebP** | 表情包、产品轮播、产品 360° | .gif / .webp | `yuanfang-html-image` | 计划中（--format gif + --frames N, 多次需要再拆 yuanfang-anim） |
+| **C. 短视频** | 抖音/视频号/朋友圈视频 | .mp4 | `yuanfang-media-video` (未来) | 待建（用 ffmpeg / 可灵 / 剪映 SDK） |
+
+> 决策树：是否需要音频 + ffmpeg？
+> - 不需要 → image（即使有动效也留 image）
+> - 需要 → 未来的 video skill
+>
+> 参考：仓库已有 `gif-sticker-maker` skill，可作为 B 类实现的参考（拿过来扩 image 的 `--format gif` 旗）。
+
+引用：在 [yuanfang-media-publish](../yuanfang-media-publish/SKILL.md) 发布时，A/B 类走图片通道，C 类走视频通道。
