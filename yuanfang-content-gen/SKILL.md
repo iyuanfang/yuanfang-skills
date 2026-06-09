@@ -5,7 +5,7 @@ description: |
   专注文案（persona / title formula / 合规 / 跨平台调性），**不出图**——出图调 yuanfang-image。
   相比手动写，省去重复复制粘贴 + 逐平台调语气的工作。
   当用户说"写内容"、"发哪个平台"、"小红书文案"、"内容创作"、"写一篇推广"时考虑使用此技能。
-  想"全套出图"时配合 yuanfang-content-suite 或 yuanfang-image。
+  想"全套出图"时配合 yuanfang-media-suite 或 yuanfang-html-image。
 ---
 
 # yuanfang-content-gen — 多平台文案生成
@@ -15,15 +15,15 @@ description: |
 **做**：写 copy.md + content.json（多平台风格适配 + 合规校验 + 跨平台调性指南）
 **不做**：出图、调 LLM API
 
-出图调 [yuanfang-image](../yuanfang-image/SKILL.md) 或走 [yuanfang-content-suite](../yuanfang-content-suite/SKILL.md) 组合层。
+出图调 [yuanfang-html-image](../yuanfang-html-image/SKILL.md) 或走 [yuanfang-media-suite](../yuanfang-media-suite/SKILL.md) 组合层。
 
 ## 依赖
 
 | Skill | 用途 | 是否必装 |
 |-------|------|---------|
 | `yuanfang-design/` | 主题预览（schemas 引用其主题名） | 推荐 |
-| `yuanfang-image/` | 出图（agent 自己调） | 出图时必装 |
-| `yuanfang-content-suite/` | 组合层（agent 自己用） | 全流程时必装 |
+| `yuanfang-html-image/` | 出图（agent 自己调） | 出图时必装 |
+| `yuanfang-media-suite/` | 组合层（agent 自己用） | 全流程时必装 |
 
 **工作目录约定**：所有命令以**本 skill 所在目录**（`yuanfang-content-gen/`）为 cwd 执行。`output/` 写在本 skill 目录下，调用兄弟 skill 用 `../<brother-skill>/` 相对路径。
 
@@ -221,7 +221,7 @@ for p in 小红书 公众号 头条 知乎 朋友圈 微头条; do
 done
 ```
 
-完整流程请用 `yuanfang-content-suite`。
+完整流程请用 `yuanfang-media-suite`。
 
 ---
 
