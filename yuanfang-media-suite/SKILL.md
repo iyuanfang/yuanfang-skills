@@ -19,10 +19,10 @@ description: 组合层 skill。串起 yuanfang-content-gen（写文案） + yuan
 | Skill | 职责 | 输入 | 输出 |
 |---|---|---|---|
 | `yuanfang-content-gen` | 多平台文案 + 合规验证 | brief.md | `output/<session>/<平台>/{copy.md, content.json}` |
-| `yuanfang-html-image` | 静态图渲染 | content.json | PNG |
+| `yuanfang-html-image` | 静态图 + 动图 (CSS / GIF / WebP) | content.json | PNG / GIF / WebP |
+| `yuanfang-html-video` (占位) | 视频生成 (15-60s) | content.json | mp4 |
 | `yuanfang-html-ppt` | PPT 演示（独立） | content.yaml | .pptx |
-| `yuanfang-media-publish` (新) | 发布到平台账号 | PNG / mp4 | 平台帖子 URL |
-| `yuanfang-media-video` (未来) | 视频生成 | content.json | mp4 |
+| `yuanfang-media-publish` | 发布到平台账号 | PNG / GIF / mp4 | 平台帖子 URL |
 
 ## 串行模板（agent 怎么跑）
 
@@ -77,14 +77,14 @@ Step 5  总结 output/<session>/ 目录 + 给用户一份发布清单
 
 | 动图类型 | 例子 | 格式 | 归属 skill | 现状 |
 |---|---|---|---|---|
-| **A. CSS 动效** | 入场动画、悬浮、过渡、轮播 | PNG 序列 / SVG 动画 / Lottie | `yuanfang-html-image` | 已支持（--animation 旗 + base.css keyframes, 计划中） |
-| **B. GIF / WebP** | 表情包、产品轮播、产品 360° | .gif / .webp | `yuanfang-html-image` | 计划中（--format gif + --frames N, 多次需要再拆 yuanfang-anim） |
-| **C. 短视频** | 抖音/视频号/朋友圈视频 | .mp4 | `yuanfang-media-video` (未来) | 待建（用 ffmpeg / 可灵 / 剪映 SDK） |
+| **A. CSS 动效** | 入场动画、悬浮、过渡、轮播 | 单 PNG + CSS 动画 / WebP | `yuanfang-html-image` | ✅ 已支持（5 内置 keyframes: fade-in / slide-up / zoom-in / breathe / pulse-qr） |
+| **B. GIF / WebP 动图** | 表情包、产品轮播、产品 360° | .gif / .webp | `yuanfang-html-image` | ✅ 已支持（--format gif --frames N --frame-delay Ms, sharp + gifenc 纯 JS） |
+| **C. 短视频** | 抖音/视频号/朋友圈视频 | .mp4 | `yuanfang-html-video` | 🟡 占位 SOP（SKILL.md + README, scripts/render.js 未实现） |
 
 > 决策树：是否需要音频 + ffmpeg？
-> - 不需要 → image（即使有动效也留 image）
-> - 需要 → 未来的 video skill
+> - 不需要 → `yuanfang-html-image`（即使有动效也留 image）
+> - 需要 → `yuanfang-html-video`（占位中）
 >
-> 参考：仓库已有 `gif-sticker-maker` skill，可作为 B 类实现的参考（拿过来扩 image 的 `--format gif` 旗）。
+> 参考：仓库已有 `gif-sticker-maker` skill，B 类实现在 `render.js` 里依赖 `gifenc` (纯 JS, 无 native 依赖)。
 
 引用：在 [yuanfang-media-publish](../yuanfang-media-publish/SKILL.md) 发布时，A/B 类走图片通道，C 类走视频通道。

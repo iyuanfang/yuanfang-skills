@@ -3,24 +3,36 @@
 A collection of design + content skills for AI agents. Currently includes:
 
 - **`yuanfang-design/`** — Shared design system (CSS token variables, 18 themes, layout blocks)
-- **`yuanfang-html-image/`** — Generate social media images from text via HTML + Playwright
+- **`yuanfang-html-image/`** — Generate social media images (静态 + 动图 CSS/GIF) from text via HTML + Playwright
+- **`yuanfang-html-video/`** — 视频生成 (15-60s, 占位 SOP, 未实现)
 - **`yuanfang-html-ppt/`** — Generate .pptx presentations from content.yaml (14 layouts, single dom-to-pptx engine)
 - **`yuanfang-content-gen/`** — Multi-platform content generator: brief → copy.md + content.json (纯文案，不出图)
 - **`yuanfang-media-suite/`** — 组合层 skill (0 代码)，串起 content-gen + html-image 走完整套多平台内容生产
-- **`yuanfang-media-publish/`** — 发布层 skill，PNG/mp4 → 平台账号 (公众号 API / 小红书 MCP / 朋友圈人工)
+- **`yuanfang-media-publish/`** — 发布层 skill，PNG/GIF/mp4 → 平台账号 (公众号 API / 小红书 MCP / 朋友圈人工 / 抖音 / 视频号)
 
-## 职责分离 (5-层架构)
+## 职责分离 (6-层架构)
 
 | Skill | 职责 | 输入 | 输出 |
 |---|---|---|---|
 | yuanfang-content-gen | 多平台文案 + 合规 | brief.md | copy.md + content.json |
-| yuanfang-html-image | 静态图渲染 | content.json | PNG |
+| yuanfang-html-image | 静态图 + 动图 (CSS/GIF) | content.json | PNG / GIF / WebP |
+| yuanfang-html-video | 视频 (15-60s, 占位) | content.json | mp4 |
 | yuanfang-html-ppt | PPT 演示 | content.yaml | .pptx |
 | yuanfang-media-suite | 组合 (无代码) | 用户的请求 | 串起 content + image |
-| yuanfang-media-publish | 发布到平台账号 | PNG / mp4 | 平台帖子 URL |
+| yuanfang-media-publish | 发布到平台账号 | PNG / GIF / mp4 | 平台帖子 URL |
 
-普通用户：装全部 5 个 + design。
+普通用户：装全部 6 个 + design。
 高级用户：只装自己需要的那 1-2 个。
+
+## 动图 vs 视频
+
+| 类型 | 例子 | 归属 | 现状 |
+|---|---|---|---|
+| CSS 动效 (单 PNG + 动画) | 入场/过渡/轮播 | `yuanfang-html-image` | ✅ 已支持 (5 内置 keyframes) |
+| GIF / WebP 动图 | 表情包/产品 360° | `yuanfang-html-image` | ✅ 已支持 (--format gif --frames N) |
+| 短视频 (15-60s) | 抖音/视频号 | `yuanfang-html-video` | 🟡 占位 SOP |
+
+**分界线**：需要音频轨 + 视频引擎 → video；不需要 → image。
 
 ## 安装 (OpenCode / Claude Code)
 
@@ -41,6 +53,7 @@ npx playwright install chromium
 ```bash
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design         ~/.config/opencode/skills/yuanfang-design
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image     ~/.config/opencode/skills/yuanfang-html-image
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-video     ~/.config/opencode/skills/yuanfang-html-video
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt       ~/.config/opencode/skills/yuanfang-html-ppt
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen    ~/.config/opencode/skills/yuanfang-content-gen
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-media-suite    ~/.config/opencode/skills/yuanfang-media-suite
@@ -51,6 +64,7 @@ ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-media-publish  ~/.config/openco
 ```bash
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-design         ~/.claude/skills/yuanfang-design
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-image     ~/.claude/skills/yuanfang-html-image
+ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-video     ~/.claude/skills/yuanfang-html-video
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-html-ppt       ~/.claude/skills/yuanfang-html-ppt
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-content-gen    ~/.claude/skills/yuanfang-content-gen
 ln -s ~/.opencode/repos/yuanfang-skills/yuanfang-media-suite    ~/.claude/skills/yuanfang-media-suite

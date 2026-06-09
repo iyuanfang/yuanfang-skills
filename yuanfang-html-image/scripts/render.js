@@ -100,6 +100,7 @@ function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width
   const direction = detectDirection(content.title, content.body);
   const dataAttrs = buildDataAttributes(themeName, params);
   const hasParams = Object.values(params).some(Boolean);
+  const animationCss = animationKeyframesCss();
   return `<!DOCTYPE html>
 <html lang="${direction.lang}" dir="${direction.dir}"${dataAttrs}>
 <head>
@@ -111,14 +112,29 @@ ${baseCSS}
 ${themeCSS}
 ${hasParams ? loadParamsCSS() : ''}
 ${brandOverrideCss}
+${animationCss}
 body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: hidden; }
 .cover { width: ${width}px; height: ${height}px; }
 </style>
 </head>
-<body>
+<body class="${content.animation ? `is-animating is-animating--${escapeHtml(String(content.animation))}` : ''}">
 ${body}
 </body>
 </html>`;
+}
+
+// 内置 5 种 keyframes 库。animation=<name> 时注入。CSS only，无 JS。
+// 选这 5 种因为：(1) 通用 (2) 跟 yuanfang 现有 accent-line/accent-block 风格搭 (3) 不依赖 JS 也能在 Playwright 单帧截图里看到完整状态。
+const ANIMATION_PRESETS = {
+  'fade-in':     '@keyframes yuanfang-fade-in { from { opacity: 0 } to { opacity: 1 } } .is-animating--fade-in .cover > * { animation: yuanfang-fade-in 600ms ease-out both; }',
+  'slide-up':    '@keyframes yuanfang-slide-up { from { opacity: 0; transform: translateY(40px) } to { opacity: 1; transform: translateY(0) } } .is-animating--slide-up .cover > * { animation: yuanfang-slide-up 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
+  'zoom-in':     '@keyframes yuanfang-zoom-in { from { opacity: 0; transform: scale(0.9) } to { opacity: 1; transform: scale(1) } } .is-animating--zoom-in .cover > * { animation: yuanfang-zoom-in 600ms cubic-bezier(0.2, 0.7, 0.3, 1) both; }',
+  'breathe':     '@keyframes yuanfang-breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.03) } } .is-animating--breathe .cover__accent-block { animation: yuanfang-breathe 2.4s ease-in-out infinite; }',
+  'pulse-qr':    '@keyframes yuanfang-pulse-qr { 0%, 100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.06); opacity: 0.85 } } .is-animating--pulse-qr .cover__qr { animation: yuanfang-pulse-qr 1.6s ease-in-out infinite; transform-origin: center; }',
+};
+
+function animationKeyframesCss() {
+  return Object.values(ANIMATION_PRESETS).join('\n');
 }
 
 function renderHTML(layoutHTML, content, config, platform) {
@@ -260,6 +276,46 @@ function takeScreenshot(html, outputPath, platform) {
     console.error(`  [FAIL] ${platform.label}: ${e.message}`);
   }
   if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+}
+
+// 截 N 帧：playwright 截 N 次，每次间停 --frame-delay ms。用 Playwright 而不是 Puppeteer 因为 deps 已有。
+// 返回 Buffer[] (PNG 字节)。失败 throw，调用方负责清理 tmp。
+function takeAnimationFrames(html, platform, frames, frameDelayMs) {
+  const tmp = path.join(path.dirname(platform.outputPath), `_tmp_${Date.now()}.html`);
+  const framePaths = [];
+  try {
+    fs.writeFileSync(tmp, html, 'utf-8');
+    const url = `file://${path.resolve(tmp)}`;
+    for (let i = 0; i < frames; i++) {
+      const fp = tmp.replace('.html', `_f${i}.png`);
+      const waitAt = Math.max(1500, (i + 1) * frameDelayMs);
+      const cmd = `npx playwright screenshot --viewport-size=${platform.width},${platform.height} --wait-for-timeout=${waitAt} "${url}" "${fp}"`;
+      execSync(cmd, { stdio: 'pipe', timeout: 60000 });
+      framePaths.push(fp);
+    }
+    return framePaths.map(p => fs.readFileSync(p));
+  } finally {
+    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+    for (const fp of framePaths) {
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    }
+  }
+}
+
+// 用 sharp 解 PNG + 用 gifenc 编码 GIF。sharp 解码快、稳定，gifenc 纯 JS 编码无 native 依赖。
+// npx playwright 截的 PNG 是 RGBA，sharp.raw().toBuffer() 直接出 raw RGBA bytes。
+async function encodeGif(buffers, width, height, frameDelayMs) {
+  const sharp = require('sharp');
+  const { GIFEncoder, quantize, applyPalette } = require('gifenc');
+  const enc = GIFEncoder();
+  for (const buf of buffers) {
+    const { data } = await sharp(buf).raw().ensureAlpha().toBuffer({ resolveWithObject: true });
+    const palette = quantize(data, 256, { format: 'rgb444' });
+    const indexed = applyPalette(data, palette, 'rgb444');
+    enc.writeFrame(indexed, width, height, { palette, delay: frameDelayMs });
+  }
+  enc.finish();
+  return Buffer.from(enc.bytes());
 }
 
 function detectDirection(title, body) {
@@ -408,7 +464,7 @@ function buildBrandOverrideCss(spec, themeName) {
   return `[data-theme="${themeName}"] {\n${decls}\n}\n`;
 }
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv);
 
   if (args['list-themes']) {
@@ -428,6 +484,11 @@ function main() {
         source: args.source || args.url || '',
         points: (args.points || '').split('|').filter(Boolean),
       };
+
+  if (args.animation) content.animation = args.animation;
+  if (args.format)    content.format    = args.format;
+  if (args.frames)    content.frames    = parseInt(args.frames, 10) || undefined;
+  if (args['frame-delay']) content.frameDelay = parseInt(args['frame-delay'], 10) || undefined;
 
   const spec = findBrandSpec(content, args);
   const merged = mergeBrandSpec(content, spec);
@@ -494,6 +555,17 @@ function main() {
       const previewPath = path.join(outputDir, `_preview_${platform.id}.html`);
       fs.writeFileSync(previewPath, html, 'utf-8');
       console.log(`  [HTML] ${previewPath}`);
+    } else if (merged.format === 'gif' || merged.format === 'webp') {
+      // GIF/WebP 动图路径：截 N 帧 → 编码 → 单文件。
+      const frames = merged.frames || 24;
+      const frameDelay = merged.frameDelay || 80;
+      const safe = safeDirName(content.title).slice(0, 40);
+      const pngs = takeAnimationFrames(html, { ...platform, outputPath: outputDir }, frames, frameDelay);
+      const gifBytes = await encodeGif(pngs, platform.width, platform.height, frameDelay);
+      const ext = merged.format;
+      const outPath = path.join(outputDir, `${safe}_${platform.id}.${ext}`);
+      fs.writeFileSync(outPath, gifBytes);
+      console.log(`  [OK] ${platform.label} ${ext} (${platform.width}x${platform.height}, ${frames} frames @ ${frameDelay}ms)`);
     } else {
       const safe = safeDirName(content.title).slice(0, 40);
       takeScreenshot(html, path.join(outputDir, `${safe}_${platform.id}.png`), platform);

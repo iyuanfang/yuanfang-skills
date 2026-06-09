@@ -35,7 +35,9 @@ description: |
 | **微头条** | 头条号 API（同头条） | 账号 token | 自动 | 短文 + 1 张图 |
 | **朋友圈 (个人微信)** | 无官方 API | 微信 PC 客户端 | 人工 (agent 指引) | 必须人工点发送 |
 | **B站** | B站开放平台 API | AppKey + access_token | 自动 | 图文动态需 b23.tv |
-| **抖音** | 抖音开放平台 | client_key + token | 自动 | 需企业认证 + 类目报白 |
+| **抖音 (视频)** | 抖音开放平台 | client_key + token | 自动 | 需企业认证 + 类目报白；视频走 `/video/upload/` |
+| **视频号 (视频)** | 微信视频号 API | AppID + AppSecret | 自动 | 视频需先腾讯云 COS 存储 + 提交签名 |
+| **B站 (视频)** | B站开放平台 | AppKey + access_token | 自动 | 视频走 `/video/upload/`；分 P 投稿 |
 
 > 平台策略参考 `references/platform-strategies.md`（未来补充）。
 
