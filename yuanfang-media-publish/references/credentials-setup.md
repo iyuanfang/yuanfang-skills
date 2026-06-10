@@ -37,6 +37,17 @@
 
 ### 头条号（toutiao）
 
+> ⚠️ 头条号**无公开的文章发布 API**。只有抖音开放平台的视频发布接口（仅支持视频，不支持图文）。
+> 文章发布请走浏览器自动化：
+
+```bash
+node yuanfang-media-publish/scripts/publish-browser.js --platform toutiao --input output/<session>/头条/
+```
+
+该命令会启动本地 Chromium 浏览器，你扫码登录后自动填内容 + 保存草稿。
+
+如果你仍想配置 API token（用于抖音开放平台的视频发布到头条），步骤：
+
 1. 打开 https://mp.toutiao.com → 登录 → 主页右上角"创作中心"
 2. 左侧"工具" → "开发工具" → 申请"开放平台"
 3. 创建应用 → 选"内容发布"权限 → 拿到 **access_token**（手动生成一次性 token，30 天有效）
@@ -48,12 +59,21 @@
 }
 ```
 
-微头条同 token，脚本里 `publishToutiao` 会自动选短文 endpoint。
-
 ### 知乎（zhihu）
 
+> ⚠️ 知乎 API v4 是**只读接口**，无公开的文章发布 API。OAuth 发布权限为邀请制。
+> 文章发布请走浏览器自动化：
+
+```bash
+node yuanfang-media-publish/scripts/publish-browser.js --platform zhihu --input output/<session>/知乎/
+```
+
+该命令会启动本地 Chromium 浏览器，你扫码登录后自动填内容 + 保存草稿。
+
+如果你仍想配置 OAuth token（仅可用于读取数据），步骤：
+
 1. 打开 https://www.zhihu.com → 设置 → API 申请（目前为邀请制）
-2. 拿到 OAuth **access_token**（知乎 API 受限，建议用 Zhihu OAuth2.0 流程）
+2. 拿到 OAuth **access_token**
 3. 填入：
 
 ```json
@@ -94,7 +114,19 @@
 }
 ```
 
-## 暂不通过 API 的平台
+## 浏览器自动化通道（无 API 的平台）
+
+以下平台无公开的内容发布 API，改用浏览器自动化（Playwright）：
+
+| 平台 | 命令 | 说明 |
+|---|---|---|
+| 头条号 | `publish-browser.js --platform toutiao` | 扫码登录 → 自动填文 → 存草稿 |
+| 知乎 | `publish-browser.js --platform zhihu` | 扫码登录 → 自动填文 → 存草稿 |
+| 公众号（备用） | `publish-browser.js --platform wechat` | API 不可用时用此方案 |
+
+浏览器通道无需配置 API 凭证，首次需手机扫码登录，session 自动缓存。
+
+## 暂不通过 API 也不走浏览器的平台
 
 - **小红书**：无开放 API，走 `xpzouying/xiaohongshu-mcp`（Playwright 模拟登录）。Cookie 由 MCP 自己的配置文件管理，本 skill **不**读。
 - **朋友圈 / 个人微信**：无 API，本 skill 只产"发布指引"。

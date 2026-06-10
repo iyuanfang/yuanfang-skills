@@ -41,8 +41,8 @@ node yuanfang-media-publish/scripts/publish-api.js \
   --platform wechat \
   --input output/2026AICS/公众号/
 
-# 头条：写 token 完整 HTTP 调用（框架已就位，等待实现）
-node yuanfang-media-publish/scripts/publish-api.js \
+# 头条 / 知乎：无公开 API，走浏览器自动化
+node yuanfang-media-publish/scripts/publish-browser.js \
   --platform toutiao \
   --input output/2026AICS/头条/
 
@@ -61,13 +61,14 @@ agent 加载本 SKILL.md，按平台矩阵调对应通道。
 | 平台 | 通道 | 模式 | 状态 |
 |---|---|---|---|
 | 微信公众号 | 公众号 API | 自动（草稿箱） | ✅ 已实现 |
+| 微信公众号 | publish-browser.js | 半自动（扫码） | ✅ 已实现 |
 | 小红书 | xiaohongshu-mcp | 半自动 | cookie 由 MCP 管 |
-| 头条 | 头条号 API | 自动 | 🟡 框架已就位 |
-| 知乎 | 知乎 API | 自动 | 🟡 框架已就位 |
-| 微头条 | 头条号 API（同头条） | 自动 | 🟡 框架已就位 |
+| 头条（文章） | publish-browser.js | 半自动（扫码） | ✅ 已实现 |
+| 知乎 | publish-browser.js | 半自动（扫码） | ✅ 已实现 |
+| 微头条 | publish-browser.js（同头条） | 半自动（扫码） | ✅ 已实现 |
 | 朋友圈 | 微信 PC | 人工指引 | 无 API |
 | B站 | B站开放平台 | 自动 | 🟡 框架已就位 |
-| 抖音 | 抖音开放平台 | 自动 | 🟡 框架已就位 |
+| 抖音 | 抖音开放平台 | 自动 | 🟡 需企业认证 |
 | 视频号 | 微信视频号 API | 自动 | 待补 |
 
 ## 文件结构
@@ -78,7 +79,8 @@ yuanfang-media-publish/
 ├── README.md                               ← 你正在读的
 ├── publish-credentials.example.json        ← 凭证模板（cp 到 ~/.config/opencode/）
 ├── scripts/                                ← 各通道包装
-│   ├── publish-api.js                      ← 统一 API 通道（公众号/头条/知乎/B站/抖音）
+│   ├── publish-api.js                      ← 统一 API 通道（公众号/B站/抖音）
+│   ├── publish-browser.js                  ← Playwright 浏览器通道（头条/知乎/公众号备用）✅
 │   └── publish-mcp.js                      ← 小红书 MCP 通道（待实现）
 ├── references/                             ← 详细文档
 │   ├── platform-strategies.md              ← 限流/避坑（待补）

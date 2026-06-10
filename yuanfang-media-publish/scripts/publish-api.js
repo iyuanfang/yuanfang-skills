@@ -14,11 +14,13 @@
  *
  * 用法：
  *   node publish-api.js --platform wechat  --input output/2026AICS/公众号/
- *   node publish-api.js --platform toutiao --input output/2026AICS/头条/
- *   node publish-api.js --platform zhihu   --input output/2026AICS/知乎/
- *   node publish-api.js --platform bilibili --input output/2026AICS/B站/
- *   node publish-api.js --platform douyin  --input output/2026AICS/抖音/
+ *   node publish-api.js --platform bilibili --input output/2026AICS/B站/    (需企业认证)
+ *   node publish-api.js --platform douyin  --input output/2026AICS/抖音/    (需企业认证)
  *   node publish-api.js --help
+ *
+ * 无 API 的平台（头条/知乎）请走 publish-browser.js：
+ *   node publish-browser.js --platform toutiao --input output/2026AICS/头条/
+ *   node publish-browser.js --platform zhihu   --input output/2026AICS/知乎/
  *
  * Cookie 通道（小红书 / 朋友圈）不在本脚本内 —— 它们走 MCP / 浏览器人工指引。
  *
@@ -115,12 +117,13 @@ function printHelp() {
     '',
     '平台状态:',
     '  wechat     ✅ 草稿箱已实现（不自动发布）',
-    '  toutiao    🟡 框架已就位，等待实现',
-    '  zhihu      🟡 框架已就位，等待实现',
-    '  bilibili   🟡 框架已就位，等待实现',
-    '  douyin     🟡 框架已就位，等待实现',
+    '  toutiao    🟡 头条无公开文章 API，请走 publish-browser.js（Playwright 浏览器自动化）',
+    '  zhihu      🟡 知乎无公开文章发布 API，请走 publish-browser.js（Playwright 浏览器自动化）',
+    '  bilibili   🟡 框架已就位，需企业认证 + OAuth 流程',
+    '  douyin     🟡 框架已就位，需企业认证 + 类目报白',
     '',
     'Cookie 通道（小红书 / 朋友圈）不在本脚本内，请走 publish-mcp.js 或人工。',
+    '无 API 的平台（头条/知乎）请走 publish-browser.js（本仓库 scripts/ 目录下）。',
     '',
     '示例:',
     '  node publish-api.js --platform wechat --input output/2026AICS/公众号/',
@@ -135,29 +138,31 @@ function printHelp() {
 // ============================================================
 
 /**
- * 读凭证 JSON，缺文件时给出可读错误并退出 1。
+ * 读凭证 JSON，缺文件/读失败/解析失败时抛 Error（带可读消息）。
+ * CLI 层在 main() 捕获后 printHelp+process.exit(1)。
  */
 function loadCredentials(filePath) {
   if (!fs.existsSync(filePath)) {
-    console.error(`[error] 凭证文件不存在: ${filePath}`);
-    console.error(`        请按 references/credentials-setup.md 配置，或用 --credentials 指定。`);
-    process.exit(1);
+    const err = new Error(`凭证文件不存在: ${filePath}`);
+    err.code = 'CREDENTIALS_MISSING';
+    err.hint = `请按 references/credentials-setup.md 配置，或用 --credentials 指定。`;
+    throw err;
   }
   let raw;
   try {
     raw = fs.readFileSync(filePath, 'utf8');
-  } catch (err) {
-    console.error(`[error] 读凭证文件失败: ${err.message}`);
-    process.exit(1);
+  } catch (e) {
+    const err = new Error(`读凭证文件失败: ${e.message}`);
+    err.code = 'CREDENTIALS_READ_ERROR';
+    throw err;
   }
-  let json;
   try {
-    json = JSON.parse(raw);
-  } catch (err) {
-    console.error(`[error] 凭证 JSON 解析失败: ${err.message}`);
-    process.exit(1);
+    return JSON.parse(raw);
+  } catch (e) {
+    const err = new Error(`凭证 JSON 解析失败: ${e.message}`);
+    err.code = 'CREDENTIALS_PARSE_ERROR';
+    throw err;
   }
-  return json;
 }
 
 /**
@@ -257,12 +262,13 @@ function httpRequest(options) {
 
 /**
  * 带指数 backoff 的请求包装。429 触发 RETRY_DELAYS_MS 重试。
+ * 内部通过可被 DI 覆盖的 _httpRequestImpl 走真实网络，方便测试注入 mock。
  */
 async function httpRequestWithRetry(options) {
   let lastErr;
   for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt += 1) {
     try {
-      const res = await httpRequest(options);
+      const res = await _httpRequestImpl(options);
       if (res.status === 429) {
         const wait = RETRY_DELAYS_MS[attempt];
         console.error(`[warn] 429 限流，${wait}ms 后重试 (${attempt + 1}/${RETRY_DELAYS_MS.length})`);
@@ -279,6 +285,9 @@ async function httpRequestWithRetry(options) {
   }
   throw lastErr || new Error('请求重试耗尽');
 }
+
+// module-level 间接层: 默认 = httpRequest; 测试可覆盖
+let _httpRequestImpl = httpRequest;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -435,7 +444,12 @@ async function publishToutiao({ input, credentials }) {
   if (!credentials.toutiao || !credentials.toutiao.token) {
     throw new Error('toutiao 凭证缺 token');
   }
-  return pendingStub('toutiao', '头条号开放平台 token 已就位，但 publishToutiao() 完整 HTTP 调用未实现，欢迎 PR');
+  return pendingStub(
+    'toutiao',
+    '头条号目前无公开的文章发布 API（只有 抖音开放平台 的视频发布接口）。' +
+    '如需发布图文，请走 publish-browser.js（Playwright 浏览器自动化）。',
+    'node yuanfang-media-publish/scripts/publish-browser.js --platform toutiao --input ' + input.dir,
+  );
 }
 
 // ---- 知乎 ----
@@ -443,7 +457,12 @@ async function publishZhihu({ input, credentials }) {
   if (!credentials.zhihu || !credentials.zhihu.oauth) {
     throw new Error('zhihu 凭证缺 oauth');
   }
-  return pendingStub('zhihu', '知乎 OAuth token 已就位，但 publishZhihu() 完整 HTTP 调用未实现，欢迎 PR');
+  return pendingStub(
+    'zhihu',
+    '知乎 API v4 是只读接口，无公开的文章发布 API。' +
+    '如需发布图文，请走 publish-browser.js（Playwright 浏览器自动化）。',
+    'node yuanfang-media-publish/scripts/publish-browser.js --platform zhihu --input ' + input.dir,
+  );
 }
 
 // ---- B 站 ----
@@ -451,22 +470,37 @@ async function publishBilibili({ input, credentials }) {
   if (!credentials.bilibili || !credentials.bilibili.accessToken) {
     throw new Error('bilibili 凭证缺 accessToken');
   }
-  return pendingStub('bilibili', 'B 站 AppKey 已就位，但 publishBilibili() 完整 HTTP 调用未实现，欢迎 PR');
+  // B 站开放平台有动态图文发布 API（POST /x/dynamic/feed/draw/upload）
+  // 但需要 multipart/form-data 上传（零依赖实现较复杂）。
+  // 欢迎 PR 贡献完整实现。
+  return pendingStub(
+    'bilibili',
+    'B 站动态图文 API（POST /x/dynamic/feed/draw/upload）未实现。' +
+    '需要的步骤：1) 应用认证获取 AppKey+AppSecret 2) OAuth 拿 access_token 3) multipart 上传图片 + 正文。',
+    '详见 https://openhome.bilibili.com/',
+  );
 }
 
 // ---- 抖音 ----
 async function publishDouyin({ input, credentials }) {
-  if (!credentials.douyin || !credentials.douyin.clientKey || !credentials.douyin.clientSecret) {
-    throw new Error('douyin 凭证缺 clientKey / clientSecret');
+  if (!credentials.douyin || !credentials.douyin.clientKey || !credentials.douyin.clientSecret || !credentials.douyin.accessToken) {
+    throw new Error('douyin 凭证缺 clientKey / clientSecret / accessToken');
   }
-  return pendingStub('douyin', '抖音 clientKey 已就位，但 publishDouyin() 完整 HTTP 调用未实现，欢迎 PR');
+  // 抖音开放平台有视频发布 API（POST /video/upload/），但需企业认证 + 类目报白。
+  // 图文/content 发布暂未开放给个人开发者。
+  return pendingStub(
+    'douyin',
+    '抖音视频发布 API（POST /video/upload/）需企业认证 + 类目报白。' +
+    '需要的步骤：1) 抖音开放平台注册企业开发者 2) 创建应用 3) OAuth 拿 access_token 4) multipart 上传视频。',
+    '详见 https://open.douyin.com/',
+  );
 }
 
 /**
  * 通用 "未实现" 桩 —— 让 framework 跑通，但不假装成功。
  */
-function pendingStub(platform, reason) {
-  return {
+function pendingStub(platform, reason, workaround) {
+  const res = {
     postUrl: '',
     publishedAt: '',
     response: {
@@ -475,6 +509,8 @@ function pendingStub(platform, reason) {
       reason,
     },
   };
+  if (workaround) res.response.workaround = workaround;
+  return res;
 }
 
 // ============================================================
@@ -524,7 +560,14 @@ async function main() {
     process.exit(1);
   }
 
-  const credentials = loadCredentials(args.credentials);
+  let credentials;
+  try {
+    credentials = loadCredentials(args.credentials);
+  } catch (err) {
+    console.error(`[error] ${err.message}`);
+    if (err.hint) console.error(`        ${err.hint}`);
+    process.exit(1);
+  }
   const input = loadInput(args.input);
   console.log(`[main] 平台=${args.platform} 输入=${input.dir} 媒体=${input.media.length} 个`);
 
@@ -547,6 +590,9 @@ async function main() {
 
   // 草稿 / pending 不算失败 —— 退出 0 让上层 agent 知道这只是"准备就绪"
   if (result.response.status === 'pending') {
+    if (result.response.workaround) {
+      console.log(`       workaround:  ${result.response.workaround}`);
+    }
     process.exit(0);
   }
 }
@@ -571,4 +617,7 @@ module.exports = {
   publishZhihu,
   publishBilibili,
   publishDouyin,
+  // 测试 hook: 替换 _httpRequestImpl 注入 mock (test-only)
+  __setHttpRequestForTest: (fn) => { _httpRequestImpl = fn; },
+  __resetHttpRequestForTest: () => { _httpRequestImpl = httpRequest; },
 };
