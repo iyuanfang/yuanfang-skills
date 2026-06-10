@@ -22,5 +22,11 @@ node_modules/
 .idea/
 .DS_Store
 
+# Playwright MCP debug artifacts
+.playwright-mcp/
+
 # yuanfang-content-gen generated outputs (per platform/session)
 yuanfang-content-gen/output/
+
+# yuanfang-html-video rendered mp4 output
+/yuanfang-html-video/output/
