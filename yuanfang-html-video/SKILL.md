@@ -41,7 +41,11 @@ description: |
 - 检测顺序：`require('ffmpeg-static')` → 系统 `ffmpeg` PATH
 - 检测不到 → 清晰报错并 exit 1，告诉用户怎么装
 
-**未来可加**：剪映 SDK / 可灵（如果要 AI 文生视频）
+**架构**（2026 v2）：Hybrid of [Hyperframes](https://github.com/HeyGenOSS/hyperframes) + yuanfang-html-image。
+- 复用 html-image 的 `assembleHTML` 构建布局 + CSS 动画
+- 注入 `window.__hf` seek 协议：WAAPI `animation.currentTime` 驱动
+- 单次 Playwright browser launch → 循环 seek → JPEG screenshot → ffmpeg stdin pipe 流式编码
+- 比 v1（每帧 npx playwright + PNG + sharp）快约 50×
 
 ## 平台 × 时长矩阵
 
@@ -84,9 +88,10 @@ Step 1  加载 yuanfang-html-video SKILL.md
 
 Step 2  调 scripts/render.js
         检测 ffmpeg 软依赖 → 缺就给清晰错误并教装
-        截 N 帧（每帧一个 wait 累加，模拟 CSS 动画进度）
-        PNG → JPG 转换（sharp，ffmpeg 编 JPG 比 PNG 快 5-10x）
-        ffmpeg 合成 mp4（H.264 / yuv420p / CRF 23 / preset medium）
+        架构：buildVideoHTML() 注入 __hf seek 协议（WAAPI .currentTime 驱动 CSS 动画）
+        → 单次 chromium.launch → 循环 seek() → double-rAF 确保合成 → JPEG screenshot → ffmpeg stdin pipe → 流式 H.264 编码
+        （无中间帧文件，比 v1 快 ~50×）
+        参数：--file, --platform, --duration, --fps (默认24), --bgm, --output
 
 Step 3  总结输出 + 给用户发布清单
 ```

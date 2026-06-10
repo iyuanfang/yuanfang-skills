@@ -1,215 +1,385 @@
 #!/usr/bin/env node
-// yuanfang-html-video/render.js
-// 视频生成：PNG 序列 + ffmpeg 合成。
-// 软依赖 ffmpeg：检测到就跑，检测不到给清晰错误。
+// yuanfang-html-video/render.js (2026) — Hyperframes-style video pipeline.
 //
-// 后端选型：ffmpeg（理由：完全可控 / 0 成本 / 不需企业认证 / 模板丰富）
-// vs 剪映 SDK（要企业认证）/ 可灵（要 API key + 贵）。ffmpeg 最适合起步。
+// Architecture:
+//   reuse assembleHTML from yuanfang-html-image (CSS layout + ANIMATION_PRESETS)
+//   → inject WAAPI pause + __hf seek protocol
+//   → single Playwright browser, one page load
+//   → frame loop: seek → screenshot JPEG → pipe to ffmpeg stdin
+//   → streaming encode (no temp frame files)
 //
-// 输入：content.json（同 yuanfang-html-image）
-// 输出：output/<session>/<平台>/video.mp4
+// Compared to v1 (per-frame npx playwright + PNG + sharp convert):
+//   ~50× faster, no disk I/O for frames, streaming encode.
 //
-// 用法：
-//   node render.js --file content.json --platform douyin
-//   node render.js --file content.json --platform wechat-video --duration 15 --bgm path/to/mp3
-//   node render.js --file content.json --platform bilibili --duration 60 --tts "脚本"
+// Dependencies (already in package.json):
+//   playwright, sharp (via html-image reuse)
+//   ffmpeg: soft dep (ffmpeg-static or system PATH)
+//
+// Usage:
+//   node scripts/render.js --file content.json --platform douyin --duration 15
+//   node scripts/render.js --file content.json --platform bilibili --duration 30 --fps 30 --bgm /path/to/music.mp3
+
+'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync, execSync } = require('child_process');
+const { spawn } = require('child_process');
+const { chromium } = require('playwright');
+
+// ── Reuse from yuanfang-html-image ───────────────────────────────────────────
+
+const IMAGE_RENDER = path.join(__dirname, '..', '..', 'yuanfang-html-image', 'scripts', 'render.js');
+const {
+  assembleHTML, loadTheme, loadLayout, loadBaseCSS,
+  loadParamsCSS, parseArgs, resolveTemplate, resolvePlatforms,
+  findBrandSpec, mergeBrandSpec, buildBrandOverrideCss,
+} = require(IMAGE_RENDER);
+const { preflight } = require('../../scripts/preflight');
+
+// ── Platform specs (video) ───────────────────────────────────────────────────
 
 const PLATFORMS = {
-  'douyin':      { width: 1080, height: 1920, ratio: '9:16', label: '抖音' },
-  'shipinhao':   { width: 1080, height: 1920, ratio: '9:16', label: '视频号' },
-  'wechat-video':{ width: 1080, height: 1920, ratio: '9:16', label: '视频号 (alias)' },
-  'moments-video':{width: 1080, height: 1080, ratio: '1:1',  label: '朋友圈视频' },
-  'xhs-video':   { width: 1080, height: 1440, ratio: '3:4',  label: '小红书视频' },
-  'bilibili':    { width: 1920, height: 1080, ratio: '16:9', label: 'B站' },
-  'youtube':     { width: 1920, height: 1080, ratio: '16:9', label: 'YouTube' },
+  'douyin':        { width: 1080, height: 1920, ratio: '9:16',  label: '抖音' },
+  'shipinhao':     { width: 1080, height: 1920, ratio: '9:16',  label: '视频号' },
+  'wechat-video':  { width: 1080, height: 1920, ratio: '9:16',  label: '视频号 (alias)' },
+  'moments-video': { width: 1080, height: 1080, ratio: '1:1',   label: '朋友圈视频' },
+  'xhs-video':     { width: 1080, height: 1440, ratio: '3:4',   label: '小红书视频' },
+  'bilibili':      { width: 1920, height: 1080, ratio: '16:9',  label: 'B站' },
+  'youtube':       { width: 1920, height: 1080, ratio: '16:9',  label: 'YouTube' },
 };
 
+const VIDEO_PLATFORM_KEYS = new Set(Object.keys(PLATFORMS));
+
+// ── ffmpeg detection ─────────────────────────────────────────────────────────
+
 const FFMPEG = (() => {
-  try {
-    return require('ffmpeg-static');
-  } catch {
-    return null;
-  }
+  try { return require('ffmpeg-static'); } catch { return null; }
 })();
 
 function detectFfmpeg() {
   if (FFMPEG && fs.existsSync(FFMPEG)) return FFMPEG;
   try {
-    execSync('ffmpeg -version', { stdio: 'ignore' });
+    require('child_process').execSync('ffmpeg -version', { stdio: 'ignore' });
     return 'ffmpeg';
   } catch {
     return null;
   }
 }
 
-function parseArgs(argv) {
-  const args = {};
-  for (let i = 2; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const k = a.slice(2);
-      if (i + 1 < argv.length && !argv[i + 1].startsWith('--')) {
-        args[k] = argv[++i];
-      } else {
-        args[k] = true;
+// ── HTML building ────────────────────────────────────────────────────────────
+
+// Calculate the max end time (delay + duration) across all CSS-animated
+// elements in the assembled HTML. This determines how far into the animation
+// time-line the video's progress-1 (end) maps to.
+//
+// Simple approach: hardcode a generous ceiling that covers all ANIMATION_PRESETS
+// including text-reveal (max delay 1.8s + duration 2.4s = 4.2s).
+const MAX_ANIM_END_MS = 5000;
+
+/**
+ * Build video HTML from content + platform config.
+ * Injects:
+ *   1) CSS override: pause all CSS animations immediately
+ *   2) <script>: pauses WAAPI animations, exposes window.__hf seek protocol
+ */
+function buildVideoHTML({ content, platform, videoDuration }) {
+  const baseHtml = assembleHTML({
+    themeName: content.__theme || 'minimal-white',
+    themeCSS: content.__themeCSS || '',
+    baseCSS: content.__baseCSS || '',
+    layoutHTML: content.__layoutHTML || '',
+    content,
+    width: platform.width,
+    height: platform.height,
+    brandOverrideCss: content.__brandCss || '',
+    params: content.__params || {},
+  });
+
+  const injectBlock = `<style>
+/* Pause all CSS animations immediately so WAAPI seek drives them */
+.is-animating * { animation-play-state: paused !important; }
+.is-animating--text-reveal .cover__points li { animation-play-state: paused !important; }
+</style>
+<script>
+(function(){
+'use strict';
+var totalAnimMs = ${MAX_ANIM_END_MS};
+var dur = ${videoDuration};
+
+function init() {
+  var all = document.getAnimations();
+  for (var i = 0; i < all.length; i++) { try { all[i].pause(); } catch(e) {} }
+
+  window.__hf = {
+    duration: dur,
+    seek: function(t) {
+      var p = Math.min(1, Math.max(0, t / dur));
+      var targetMs = p * totalAnimMs;
+      var anims = document.getAnimations();
+      for (var i = 0; i < anims.length; i++) {
+        try { anims[i].currentTime = targetMs; } catch(e) {}
       }
     }
+  };
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+})();
+</script>`;
+
+  return baseHtml.replace('</head>', injectBlock + '</head>');
+}
+
+// ── Video renderer ───────────────────────────────────────────────────────────
+
+/**
+ * Main render function.
+ *
+ * @param {object} opts
+ * @param {object}  opts.content       — Content object (title, body, points, ...)
+ * @param {string}  opts.platformKey   — 'douyin', 'bilibili', etc.
+ * @param {number}  opts.duration      — Video duration in seconds
+ * @param {number}  [opts.fps=24]
+ * @param {string}  [opts.bgm]         — Path to background music file
+ * @param {string}  [opts.output]      — Output path for mp4
+ * @param {object}  [opts.htmlResources] — Pre-loaded theme/layout resources
+ * @returns {Promise<string>} resolved with output path
+ */
+async function renderVideo(opts) {
+  const {
+    content, platformKey, duration: videoDuration,
+    fps = 24, bgm, output: outputArg,
+    htmlResources,
+  } = opts;
+
+  const platform = PLATFORMS[platformKey];
+  if (!platform) throw new Error(`Unknown video platform: ${platformKey}`);
+
+  // ── Resolve HTML resources ──────────────────────────────────────────────
+  // Caller can pass pre-loaded resources to avoid re-loading per-frame.
+  const themeName = htmlResources?.themeName || content.__theme || 'minimal-white';
+  let themeCSS  = content.__themeCSS;
+  let baseCSS   = content.__baseCSS;
+  let layoutHTML = content.__layoutHTML;
+  let brandCss  = content.__brandCss;
+  let params    = content.__params;
+
+  if (!themeCSS || !baseCSS || !layoutHTML) {
+    // Load from disk (first call; populate content for reuse)
+    themeCSS  = loadTheme(themeName);
+    baseCSS   = loadBaseCSS();
+    layoutHTML = htmlResources?.layoutHTML || loadLayout('cover');
+    const spec = findBrandSpec(content, {});
+    const merged = mergeBrandSpec(content, spec);
+    if (merged) Object.assign(content, merged);
+    brandCss = buildBrandOverrideCss(spec, themeName);
+    params = content.__params || {};
+    // Cache back so next call with same opts skips disk
+    content.__theme = themeName;
+    content.__themeCSS = themeCSS;
+    content.__baseCSS = baseCSS;
+    content.__layoutHTML = layoutHTML;
+    content.__brandCss = brandCss;
+    content.__params = params;
   }
-  return args;
-}
 
-// PNG → JPG（ffmpeg 视频循环用 JPG 帧比 PNG 帧快 5-10x）
-async function pngsToJpgFrames(pngPaths, outDir) {
-  const sharp = require('sharp');
-  const jpgPaths = [];
-  for (let i = 0; i < pngPaths.length; i++) {
-    const jp = path.join(outDir, `f${String(i).padStart(4, '0')}.jpg`);
-    await sharp(pngPaths[i]).jpeg({ quality: 88 }).toFile(jp);
-    jpgPaths.push(jp);
+  // ── Pre-flight check ────────────────────────────────────────────────────
+  const check = preflight(themeCSS, params, { platform });
+  for (const w of check.warnings) console.error('  ⚠', w);
+  if (check.errors.length) {
+    for (const e of check.errors) console.error('  ✗', e);
+    throw new Error(`Pre-flight failed for ${themeName} × ${platformKey}`);
   }
-  return jpgPaths;
-}
 
-// 截 N 帧：复用 image 的 takeAnimationFrames 思路但走 video scale。
-// 先把 content.json 写一个 HTML 预览给 Playwright 截 N 帧（按 css keyframes 入场动效）
-// 注：复用 yuanfang-html-image 的 render.js HTML 装配
-function buildHtmlForFrames(content, platform, animation = 'fade-in') {
-  // 简单直接：inject 一段 HTML 包含 title + body + points + qr + animation
-  // 完整版应当 import yuanfang-html-image/scripts/render.js 的 assembleHTML
-  // 但跨 skill import 复杂（相对路径问题），这里先写简化版
-  const bg = '#FAFAFA';
-  const accent = '#4F46E5';
-  return `<!DOCTYPE html>
-<html><head><style>
-  body { margin:0; width:${platform.width}px; height:${platform.height}px;
-         background:${bg}; color:#1A1A2E; font-family:-apple-system,"Noto Sans SC",sans-serif;
-         display:flex; flex-direction:column; justify-content:center; align-items:center;
-         padding:80px; box-sizing:border-box; }
-  h1 { font-size:96px; font-weight:700; line-height:1.15; margin:0 0 32px; text-align:center;
-       max-width:90%; opacity:0; animation:yuanfang-fade-in 800ms ease-out both; }
-  p  { font-size:36px; color:#6B7280; line-height:1.5; margin:0; text-align:center;
-       max-width:85%; opacity:0; animation:yuanfang-fade-in 800ms ease-out 200ms both; }
-  .points { display:flex; gap:20px; margin-top:48px; flex-wrap:wrap; justify-content:center;
-            opacity:0; animation:yuanfang-fade-in 800ms ease-out 400ms both; }
-  .pill { background:rgba(79,70,229,0.12); color:${accent}; padding:12px 28px;
-          border-radius:999px; font-size:28px; font-weight:500; }
-  .qr { position:absolute; bottom:40px; left:50%; transform:translateX(-50%);
-        width:120px; height:120px; background:#fff; border:2px solid #E5E7EB;
-        display:flex; align-items:center; justify-content:center; font-size:14px;
-        color:#6B7280; }
-  .badge { position:absolute; top:60px; left:50%; transform:translateX(-50%);
-           font-size:24px; color:${accent}; letter-spacing:0.2em; font-weight:600;
-           text-transform:uppercase; opacity:0; animation:yuanfang-fade-in 600ms ease-out 100ms both; }
-  @keyframes yuanfang-fade-in { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:translateY(0) } }
-</style></head>
-<body class="is-animating is-animating--fade-in">
-  <div class="badge">${content.badge || ''}</div>
-  <h1>${content.title || ''}</h1>
-  <p>${content.body || content.content || ''}</p>
-  <div class="points">${(content.points || []).map(p => `<div class="pill">${p}</div>`).join('')}</div>
-  ${content.qr ? `<img class="qr" src="${content.qr}" style="object-fit:contain;" />` : ''}
-</body></html>`;
-}
+  // ── Build HTML ──────────────────────────────────────────────────────────
+  const html = buildVideoHTML({
+    content: { ...content, __theme: themeName, __themeCSS: themeCSS, __baseCSS: baseCSS, __layoutHTML: layoutHTML, __brandCss: brandCss, __params: params },
+    platform,
+    videoDuration,
+  });
 
-function takeFrame(html, outPath, platform, waitMs) {
-  const tmp = path.join(path.dirname(outPath), `_tmp_${Date.now()}_${Math.random().toString(36).slice(2)}.html`);
-  fs.writeFileSync(tmp, html, 'utf-8');
-  const url = `file://${path.resolve(tmp)}`;
-  const cmd = `npx playwright screenshot --viewport-size=${platform.width},${platform.height} --wait-for-timeout=${waitMs} "${url}" "${outPath}"`;
-  try {
-    execSync(cmd, { stdio: 'pipe', timeout: 60000 });
-  } finally {
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-  }
-}
+  // ── Resolve output path ──────────────────────────────────────────────────
+  const outDir = outputArg
+    ? path.resolve(outputArg)
+    : path.join(__dirname, '..', 'output');
+  fs.mkdirSync(outDir, { recursive: true });
+  const safeBase = (content.title || 'video').replace(/[^\w一-龥]/g, '_').slice(0, 40);
+  const outPath = path.join(outDir, `${safeBase}_${platformKey}.mp4`);
 
-async function main() {
-  const args = parseArgs(process.argv);
+  // ── Frame count ──────────────────────────────────────────────────────────
+  const totalFrames = Math.round(videoDuration * fps);
 
-  // 1. 校验 ffmpeg
+  // ── ffmpeg pipeline ──────────────────────────────────────────────────────
   const ffmpeg = detectFfmpeg();
   if (!ffmpeg) {
-    console.error('yuanng-html-video: ffmpeg not found.');
+    console.error('yuanfang-html-video: ffmpeg not found.');
     console.error('');
     console.error('Install one of:');
     console.error('  macOS:   brew install ffmpeg');
     console.error('  Ubuntu:  sudo apt install ffmpeg');
     console.error('  Win:     choco install ffmpeg');
-    console.error('  npm:     npm install ffmpeg-static (then require it)');
-    console.error('');
-    console.error('This skill is a soft dependency on ffmpeg — not bundled to keep install size sane.');
+    console.error('  npm:     npm install ffmpeg-static');
     process.exit(1);
   }
 
-  // 2. 校验 platform
-  const platformKey = args.platform || 'douyin';
-  const platform = PLATFORMS[platformKey];
-  if (!platform) {
-    console.error(`unknown platform: ${platformKey}`);
-    console.error(`available: ${Object.keys(PLATFORMS).join(', ')}`);
-    process.exit(1);
-  }
-
-  // 3. 读 content
-  const content = args.file
-    ? JSON.parse(fs.readFileSync(args.file, 'utf-8'))
-    : { title: args.title || '', body: args.body || '', points: (args.points || '').split('|').filter(Boolean) };
-
-  const duration = parseInt(args.duration, 10) || 15;
-  const fps = parseInt(args.fps, 10) || 24;
-  const totalFrames = duration * fps;
-  const outputDir = path.resolve(args.output || '.');
-  fs.mkdirSync(outputDir, { recursive: true });
-
-  // 4. 截 N 帧
-  const html = buildHtmlForFrames(content, platform, args.animation);
-  const frameDir = path.join(outputDir, `_frames_${Date.now()}`);
-  fs.mkdirSync(frameDir, { recursive: true });
-  const pngPaths = [];
-  for (let i = 0; i < totalFrames; i++) {
-    const fp = path.join(frameDir, `f${String(i).padStart(4, '0')}.png`);
-    const wait = 200 + (i * 1000 / fps);
-    takeFrame(html, fp, platform, wait);
-    pngPaths.push(fp);
-  }
-
-  // 5. PNG → JPG（视频编码快）
-  const jpgPaths = await pngsToJpgFrames(pngPaths, frameDir);
-
-  // 6. ffmpeg 合成 mp4
-  const safe = (content.title || 'video').replace(/[^\w一-龥]/g, '_').slice(0, 40);
-  const outPath = path.join(outputDir, `${safe}_${platformKey}.mp4`);
-
-  const ffmpegArgs = [
+  const ffArgs = [
     '-y',
+    '-f', 'image2pipe',
     '-framerate', String(fps),
-    '-i', path.join(frameDir, 'f%04d.jpg'),
+    '-i', '-',
     '-c:v', 'libx264',
     '-pix_fmt', 'yuv420p',
     '-preset', 'medium',
     '-crf', '23',
   ];
-  if (args.bgm) {
-    ffmpegArgs.push('-i', args.bgm, '-c:a', 'aac', '-shortest');
+  if (bgm) {
+    ffArgs.push('-i', bgm, '-c:a', 'aac', '-shortest');
   }
-  ffmpegArgs.push(outPath);
+  ffArgs.push(outPath);
 
-  console.log(`[ffmpeg] ${ffmpegArgs.length} args`);
-  execFileSync(ffmpeg, ffmpegArgs, { stdio: 'inherit' });
+  const ffProc = spawn(ffmpeg, ffArgs, { stdio: ['pipe', 'inherit', 'inherit'] });
 
-  // 7. 清理
-  fs.rmSync(frameDir, { recursive: true, force: true });
-  console.log(`\n[OK] ${platform.label} video (${platform.width}x${platform.height}, ${duration}s @ ${fps}fps)`);
-  console.log(`     ${outPath}`);
+  // ── Playwright capture ───────────────────────────────────────────────────
+  let browser;
+  try {
+    browser = await chromium.launch();
+    const page = await browser.newPage({
+      viewport: { width: platform.width, height: platform.height },
+    });
+
+    const tmpHtml = path.join(outDir, `_vid_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.html`);
+    fs.writeFileSync(tmpHtml, html, 'utf-8');
+    await page.goto(`file://${tmpHtml}`, { waitUntil: 'networkidle' });
+
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(r)));
+
+    await page.evaluate(t => { if (window.__hf) window.__hf.seek(t); }, 0);
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(r)));
+
+    const frameTime = videoDuration / totalFrames;
+    const frameRate = fps;
+    let written = 0;
+
+    for (let i = 0; i < totalFrames; i++) {
+      const t = i * frameTime;
+
+      await page.evaluate(t => {
+        if (window.__hf) window.__hf.seek(t);
+      }, t);
+
+      // double rAF to ensure browser has composited the new animation state
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+      const jpgBuf = await page.screenshot({ type: 'jpeg', quality: 88 });
+      ffProc.stdin.write(jpgBuf);
+      written++;
+
+      if (i % 30 === 0 || i === totalFrames - 1) {
+        const pct = ((i + 1) / totalFrames * 100).toFixed(0);
+        process.stderr.write(`\r  Frames: ${i + 1}/${totalFrames} (${pct}%)`);
+      }
+    }
+
+    // ── Cleanup ────────────────────────────────────────────────────────────
+    ffProc.stdin.end();
+    fs.unlinkSync(tmpHtml);
+
+    await new Promise((resolve, reject) => {
+      ffProc.on('close', code => {
+        if (code === 0) resolve();
+        else reject(new Error(`ffmpeg exited with code ${code}`));
+      });
+      ffProc.on('error', reject);
+    });
+
+    process.stderr.write('\n');
+    return outPath;
+  } finally {
+    if (browser) await browser.close();
+  }
 }
+
+// ── CLI entry point ──────────────────────────────────────────────────────────
+
+async function main() {
+  const args = parseArgs(process.argv);
+
+  // ── Help shortcut ─────────────────────────────────────────────────────────
+  if (args.help || args.h) {
+    console.log(`
+Usage:
+  node scripts/render.js --file content.json --platform douyin --duration 15 [options]
+
+Options:
+  --file <path>       JSON content file (title, body, points, ...)
+  --platform <key>    Video platform: ${Object.keys(PLATFORMS).join(', ')}
+  --duration <sec>    Video length (default: 15)
+  --fps <n>           Frames per second (default: 24)
+  --bgm <path>        Background music (aac/mp3)
+  --output <dir>      Output directory (default: ./output)
+  --theme <name>      yuanfang theme name
+  --help              Show this help
+`);
+    return;
+  }
+
+  const platformKey = args.platform || 'douyin';
+  if (!VIDEO_PLATFORM_KEYS.has(platformKey)) {
+    console.error(`Unknown platform: ${platformKey}`);
+    console.error(`Available video platforms: ${Object.keys(PLATFORMS).join(', ')}`);
+    process.exit(1);
+  }
+
+  const content = args.file
+    ? JSON.parse(fs.readFileSync(args.file, 'utf-8'))
+    : {
+        title: args.title || '',
+        body: args.body || '',
+        points: (args.points || '').split('|').filter(Boolean),
+      };
+
+  if (args.animation) content.animation = args.animation;
+  if (args.theme)     content.__theme   = args.theme;
+
+  const duration = parseInt(args.duration, 10) || 15;
+  const fps = parseInt(args.fps, 10) || 24;
+
+  console.log(`yuanfang-html-video render`);
+  console.log(`  Platform: ${PLATFORMS[platformKey].label} (${PLATFORMS[platformKey].width}x${PLATFORMS[platformKey].height})`);
+  console.log(`  Duration: ${duration}s @ ${fps}fps = ${duration * fps} frames`);
+  console.log(`  Content:  ${content.title || '(no title)'}`);
+
+  const outPath = await renderVideo({
+    content,
+    platformKey,
+    duration,
+    fps,
+    bgm: args.bgm || null,
+    output: args.output || null,
+  });
+
+  console.log(`\n[OK] ${outPath}`);
+}
+
+// ── Exports ──────────────────────────────────────────────────────────────────
+
+module.exports = {
+  renderVideo,
+  buildVideoHTML,
+  PLATFORMS,
+  VIDEO_PLATFORM_KEYS,
+};
+
+// ── CLI runner ───────────────────────────────────────────────────────────────
 
 if (require.main === module) {
   main().catch(err => {
     console.error('FAIL:', err.message);
+    if (process.env.DEBUG) console.error(err.stack);
     process.exit(1);
   });
 }

@@ -50,6 +50,14 @@ node yuanfang-html-video/scripts/render.js \
 
 → `yuanfang-html-image`。动图不需要音频，仍属 image 范畴。
 
+## 架构
+
+v2 (2026) — Hyperframes-style pipeline:
+- 复用 html-image 的 `assembleHTML` 构建布局 + CSS 动画
+- 注入 `window.__hf` seek 协议（WAAPI `animation.currentTime` 驱动动画时间轴）
+- 单次 Playwright browser → 循环 seek + JPEG screenshot → ffmpeg stdin pipe → 流式 H.264
+- 比 v1（每帧独立 npx playwright）快约 50×
+
 ## 文件结构
 
 ```
