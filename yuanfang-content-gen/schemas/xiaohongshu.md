@@ -1,6 +1,6 @@
 ---
 # 小红书 文案模板
-# 必填字段：title, body, tags (3-5个), cta
+# 必填字段：title, body, tags (≤4个, 每标签≤8字), cta
 # 可选字段：emoji (正文主题色调用)
 platform: xiaohongshu
 required:

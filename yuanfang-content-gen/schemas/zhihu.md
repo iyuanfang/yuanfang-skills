@@ -1,6 +1,6 @@
 ---
 # 知乎 文案模板
-# 必填字段：title (问题式), body (专业, 首先/其次/最后结构), key_points (3-5点)
+# 必填字段：title (问题式), body (专业, 首先/其次/最后结构), key_points (3-4点, 每点≤8字)
 platform: zhihu
 required:
   - title

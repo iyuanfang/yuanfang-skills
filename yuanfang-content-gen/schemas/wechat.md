@@ -1,6 +1,6 @@
 ---
 # 公众号 文案模板
-# 必填字段：title (吸引点击), lead (200字引子), outline (大纲3-5点), cta
+# 必填字段：title (吸引点击), lead (200字引子), outline (大纲3-4点, 每条≤8字), cta
 platform: wechat
 required:
   - title

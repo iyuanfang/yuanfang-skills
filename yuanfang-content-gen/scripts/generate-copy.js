@@ -138,10 +138,10 @@ function buildSystemPrompt(platform, schema) {
 }
 
 const OUTPUT_SHAPES = {
-  xiaohongshu:   'title, body, tags (3-5 个), cta, badge',
-  wechat:        'title, lead (200 字引子), outline (3-5 条大纲), cta, body (完整文章), badge',
+  xiaohongshu:   'title, body, tags (≤4 个, 每标签≤8字), cta, badge',
+  wechat:        'title, lead (200 字引子), outline (3-4 条大纲, 每条≤8字), cta, body (完整文章), badge',
   toutiao:       'title, meta (一句话描述), body (300-500 字), cta, badge',
-  zhihu:         'title, body, key_points (3-5 点), cta, badge',
+  zhihu:         'title, body, key_points (3-4 点, 每点≤8字), cta, badge',
   moments:       'text (1-3 句, ≤60 字), badge',
   'weibo-micro': 'text (140-300 字), badge',
 };
