@@ -19,28 +19,28 @@ test('buildBrandOverrideCss: empty colors object returns empty', () => {
   assert.strictEqual(buildBrandOverrideCss(spec, 'minimal-white'), '');
 });
 
-test('buildBrandOverrideCss: single color (primary only)', () => {
+test('buildBrandOverrideCss: single color (primary only) returns empty', () => {
+  // --accent moved to params.css; primary-only doesn't produce brand CSS
   const spec = { colors: { primary: '#FF5733' } };
   const css = buildBrandOverrideCss(spec, 'minimal-white');
-  assert.ok(css.includes('[data-theme="minimal-white"]'));
-  assert.ok(css.includes('--accent: #FF5733'));
-  assert.ok(!css.includes('--bg:'));
-  assert.ok(!css.includes('--secondary:'));
+  assert.strictEqual(css, '');
 });
 
-test('buildBrandOverrideCss: all three colors', () => {
+test('buildBrandOverrideCss: all three colors (no --accent)', () => {
   const spec = { colors: { primary: '#FF5733', background: '#FAFAFA', secondary: '#1F2937' } };
   const css = buildBrandOverrideCss(spec, 'dark-gold');
-  assert.ok(css.includes('--accent: #FF5733'));
+  // --accent moved to params.css; not emitted here
+  assert.ok(!css.includes('--accent'));
   assert.ok(css.includes('--bg: #FAFAFA'));
   assert.ok(css.includes('--secondary: #1F2937'));
   assert.ok(css.includes('[data-theme="dark-gold"]'));
 });
 
-test('buildBrandOverrideCss: skips null colors but keeps defined', () => {
+test('buildBrandOverrideCss: skips null colors but keeps defined (no --accent)', () => {
   const spec = { colors: { primary: '#FF5733', background: null, secondary: '#1F2937' } };
   const css = buildBrandOverrideCss(spec, 'minimal-white');
-  assert.ok(css.includes('--accent: #FF5733'));
+  // --accent moved to params.css; not emitted here
+  assert.ok(!css.includes('--accent'));
   assert.ok(!css.includes('--bg:'));
   assert.ok(css.includes('--secondary: #1F2937'));
 });

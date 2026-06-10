@@ -77,20 +77,38 @@ function extractThemeDefault(themeCSS, varName) {
   return m ? m[1].trim() : '';
 }
 
+// Skip QR when content is dense enough to overlap. QR sits in the bottom ~120px zone;
+// long titles, multi-line body, and many points all extend downward into that zone.
+function shouldSkipQr(content, height) {
+  if (!content || !content.qr) return true;
+  if (height < 600) return true;
+  const pointRows = Math.ceil((content.points || []).length / 2);
+  const bodyLines  = Math.min(3, Math.ceil((content.body || '').length / 30));
+  const titleLines = Math.min(2, Math.ceil((content.title || '').length / 20));
+  const totalChunks = pointRows + bodyLines + titleLines;
+  if (height < 800 && totalChunks >= 7) return true;
+  if (height < 900 && totalChunks >= 9) return true;
+  return false;
+}
+
 function assembleHTML({ themeName, themeCSS, baseCSS, layoutHTML, content, width = 1080, height = 1080, brandOverrideCss = '', params = {} }) {
   const brandHtml = content.brandImage
     ? `<img class="cover__brand-img" src="${content.brandImage}" alt="${escapeHtml(content.brand || 'logo')}" />`
     : '';
-  const qrHtml = resolveQrHtml(content.qr);
+  // Cap points at 4 to prevent overlap on short formats (toutiao/wechat-cover/zhihu)
+  if (content.points) content.points = content.points.slice(0, 4);
+  const qrHtml = shouldSkipQr(content, height) ? '' : resolveQrHtml(content.qr);
+  const useTicker = content.animation === 'number-ticker';
+  const wrapT = useTicker ? wrapNumbers : function id(x) { return x; };
   const tokens = {
-    '{{TITLE}}':       escapeHtml(String(content.title || '')),
-    '{{CONTENT}}':     escapeHtml(String(content.body || content.content || '')).replace(/\n/g, '<br>'),
+    '{{TITLE}}':       wrapT(escapeHtml(String(content.title || ''))),
+    '{{CONTENT}}':     wrapT(escapeHtml(String(content.body || content.content || ''))).replace(/\n/g, '<br>'),
     '{{SOURCE}}':      escapeHtml(content.source || ''),
     '{{BRAND}}':       brandHtml,
     '{{QR}}':          qrHtml,
     '{{SEAL}}':        escapeHtml(content.seal || extractThemeDefault(themeCSS, 'seal')),
     '{{BADGE}}':       escapeHtml(content.badge || ''),
-    '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${escapeHtml(p)}</li>`).join(''),
+    '{{POINTS_HTML}}': (content.points || []).map(p => `<li>${wrapT(escapeHtml(p))}</li>`).join(''),
     '{{THEME}}':       themeName,
   };
   let body = layoutHTML;
@@ -119,6 +137,7 @@ body { margin: 0; padding: 0; width: ${width}px; height: ${height}px; overflow: 
 </head>
 <body class="${content.animation ? `is-animating is-animating--${escapeHtml(String(content.animation))}` : ''}">
 ${body}
+${animationInlineJs(content.animation)}
 </body>
 </html>`;
 }
@@ -137,10 +156,30 @@ const ANIMATION_PRESETS = {
   'bounce-in':   '@keyframes yuanfang-bounce-in { 0% { opacity: 0; transform: scale(0.6) } 60% { opacity: 1; transform: scale(1.08) } 80% { transform: scale(0.96) } 100% { transform: scale(1) } } .is-animating--bounce-in .cover > * { animation: yuanfang-bounce-in 700ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }',
   'typewriter':  '@keyframes yuanfang-typewriter { from { width: 0; opacity: 0 } to { width: 100%; opacity: 1 } } .is-animating--typewriter .cover__title { display: inline-block; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--accent); animation: yuanfang-typewriter 1.2s steps(20, end) both, yuanfang-blink-caret 0.8s step-end infinite; } @keyframes yuanfang-blink-caret { 50% { border-color: transparent } }',
   'gradient-shift': '@keyframes yuanfang-gradient-shift { 0% { background-position: 0% 50% } 50% { background-position: 100% 50% } 100% { background-position: 0% 50% } } .is-animating--gradient-shift .cover__accent-line { background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 30%, white), var(--accent)); background-size: 200% 100%; animation: yuanfang-gradient-shift 4s ease infinite; }',
+
+  // 内容动画：要点逐条浮现，无限循环。每个 li 按延迟依次入场，停留后退出，形成波浪效果。
+  'text-reveal': '@keyframes yf-reveal-item { 0% { opacity: 0; transform: translateY(10px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-6px); } } .is-animating--text-reveal .cover__points li { animation: yf-reveal-item 2.4s ease-in-out infinite; } .is-animating--text-reveal .cover__points li:nth-child(1) { animation-delay: 0s; } .is-animating--text-reveal .cover__points li:nth-child(2) { animation-delay: 0.6s; } .is-animating--text-reveal .cover__points li:nth-child(3) { animation-delay: 1.2s; } .is-animating--text-reveal .cover__points li:nth-child(4) { animation-delay: 1.8s; }',
+
+  // 内容动画：数字跳动（从 0 到目标值循环）。配合 JS 的 yf-ticker class，font-variant-numeric 防止布局抖动。
+  'number-ticker': '.yf-ticker { display: inline-block; font-variant-numeric: tabular-nums; }',
 };
 
 function animationKeyframesCss() {
   return Object.values(ANIMATION_PRESETS).join('\n');
+}
+
+function wrapNumbers(text) {
+  if (!text) return text;
+  return text.replace(/(\d+(?:\.\d+)?)/g, function(m) {
+    return '<span class="yf-ticker" data-target="' + m + '">0</span>';
+  });
+}
+
+function animationInlineJs(name) {
+  if (name === 'number-ticker') {
+    return '<script>document.addEventListener(\'DOMContentLoaded\',function(){var D=2000,els=document.querySelectorAll(\'.yf-ticker\');if(!els.length)return;var start=performance.now();(function tick(){var e=(performance.now()-start)%D,p=e/D,ep=1-Math.pow(1-p,3);els.forEach(function(el){el.textContent=Math.round(ep*parseFloat(el.dataset.target))||\'0\'});requestAnimationFrame(tick)})()});<\/script>';
+  }
+  return '';
 }
 
 function renderHTML(layoutHTML, content, config, platform) {
@@ -284,28 +323,31 @@ function takeScreenshot(html, outputPath, platform) {
   if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
 }
 
-// 截 N 帧：playwright 截 N 次，每次间停 --frame-delay ms。用 Playwright 而不是 Puppeteer 因为 deps 已有。
+// 截 N 帧：用单个 Playwright browser page，按动画时间轴逐帧截图。
 // 返回 Buffer[] (PNG 字节)。失败 throw，调用方负责清理 tmp。
-function takeAnimationFrames(html, platform, frames, frameDelayMs) {
+async function takeAnimationFrames(html, platform, frames, frameDelayMs) {
+  const { chromium } = require('playwright');
   const tmp = path.join(path.dirname(platform.outputPath), `_tmp_${Date.now()}.html`);
-  const framePaths = [];
-  try {
-    fs.writeFileSync(tmp, html, 'utf-8');
-    const url = `file://${path.resolve(tmp)}`;
-    for (let i = 0; i < frames; i++) {
-      const fp = tmp.replace('.html', `_f${i}.png`);
-      const waitAt = Math.max(1500, (i + 1) * frameDelayMs);
-      const cmd = `npx playwright screenshot --viewport-size=${platform.width},${platform.height} --wait-for-timeout=${waitAt} "${url}" "${fp}"`;
-      execSync(cmd, { stdio: 'pipe', timeout: 60000 });
-      framePaths.push(fp);
-    }
-    return framePaths.map(p => fs.readFileSync(p));
-  } finally {
-    if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
-    for (const fp of framePaths) {
-      if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    }
+  fs.writeFileSync(tmp, html, 'utf-8');
+  const url = `file://${path.resolve(tmp)}`;
+
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: platform.width, height: platform.height } });
+  await page.goto(url);
+
+  // 等页面渲染完，但不超过动画起始延迟
+  await page.waitForTimeout(300);
+
+  const pngBuffers = [];
+  for (let i = 0; i < frames; i++) {
+    if (i > 0) await page.waitForTimeout(frameDelayMs);
+    const buf = await page.screenshot({ type: 'png' });
+    pngBuffers.push(buf);
   }
+
+  await browser.close();
+  if (fs.existsSync(tmp)) fs.unlinkSync(tmp);
+  return pngBuffers;
 }
 
 // 用 sharp 解 PNG + 用 gifenc 编码 GIF。sharp 解码快、稳定，gifenc 纯 JS 编码无 native 依赖。
@@ -566,7 +608,7 @@ async function main() {
       const frames = merged.frames || 24;
       const frameDelay = merged.frameDelay || 80;
       const safe = safeDirName(content.title).slice(0, 40);
-      const pngs = takeAnimationFrames(html, { ...platform, outputPath: outputDir }, frames, frameDelay);
+      const pngs = await takeAnimationFrames(html, { ...platform, outputPath: outputDir }, frames, frameDelay);
       const gifBytes = await encodeGif(pngs, platform.width, platform.height, frameDelay);
       const ext = merged.format;
       const outPath = path.join(outputDir, `${safe}_${platform.id}.${ext}`);
